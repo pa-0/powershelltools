@@ -1,162 +1,123 @@
 Add-Type -AssemblyName PresentationFramework
 
-# Create the window
-$window = New-Object Windows.Window
-$window.Title = "Windows 10 Security Hardening and Software Installation"
-$window.Width = 800
-$window.Height = 600
+# Window
+$window = New-Object System.Windows.Window
+$window.Title = "System Configuration"
+$window.Width = 600
+$window.Height = 800
 $window.WindowStartupLocation = "CenterScreen"
 
-# Create the main grid
-$grid = New-Object Windows.Controls.Grid
-$grid.Margin = "10"
+# StackPanel
+$stackPanel = New-Object System.Windows.Controls.StackPanel
+$stackPanel.Orientation = "Vertical"
+$stackPanel.HorizontalAlignment = "Center"
 
-# Define rows and columns
-for ($i = 0; $i -lt 8; $i++) {
-    $row = New-Object Windows.Controls.RowDefinition
-    $row.Height = [Windows.GridLength]::Auto
-    $grid.RowDefinitions.Add($row)
+# Create a function to add checkboxes
+function Add-Checkbox {
+    param (
+        [string]$labelText,
+        [string]$tag,
+        [ref]$checkboxDict
+    )
+    $checkbox = New-Object System.Windows.Controls.CheckBox
+    $checkbox.Content = $labelText
+    $checkbox.Tag = $tag
+    $checkbox.Add_Checked({$checkboxDict.Value[$_this.Tag] = $true})
+    $checkbox.Add_Unchecked({$checkboxDict.Value[$_this.Tag] = $false})
+    $checkboxDict.Value[$tag] = $false
+    $stackPanel.Children.Add($checkbox)
 }
 
-for ($i = 0; $i -lt 3; $i++) {
-    $col = New-Object Windows.Controls.ColumnDefinition
-    if ($i -eq 2) {
-        $col.Width = New-Object Windows.GridLength(1, [Windows.GridUnitType]::Star)
-    } else {
-        $col.Width = New-Object Windows.GridLength(200)
+# Dictionaries to hold the state of checkboxes
+$selectedSecurityOptions = @{}
+$selectedSoftwareOptions = @{}
+
+# Add main categories and their sub-checkboxes
+$mainCategories = @(
+    @{Label = "Security Settings"; SubItems = @("Enable BitLocker", "Enable Controlled Folder Access", "Enable Exploit Guard", "Harden Office", "General OS hardening", "Advanced Windows logging", "Windows 10 Privacy Settings")},
+    @{Label = "Software Installation"; SubItems = @("Notepad++", "Google Chrome", "Mozilla Firefox", "Adobe Reader", "7-Zip", "WinRAR", "VLC Player")}
+)
+
+foreach ($category in $mainCategories) {
+    # Main category checkbox
+    $mainCheckbox = New-Object System.Windows.Controls.CheckBox
+    $mainCheckbox.Content = $category.Label
+    $mainCheckbox.FontWeight = "Bold"
+    $stackPanel.Children.Add($mainCheckbox)
+    
+    foreach ($item in $category.SubItems) {
+        $subCheckbox = New-Object System.Windows.Controls.CheckBox
+        $subCheckbox.Content = "    " + $item
+        $subCheckbox.Tag = $item
+        $subCheckbox.Add_Checked({
+            $selectedSecurityOptions[$_this.Tag] = $true
+            if ($category.Label -eq "Software Installation") {
+                $selectedSoftwareOptions[$_this.Tag] = $true
+            }
+        })
+        $subCheckbox.Add_Unchecked({
+            $selectedSecurityOptions[$_this.Tag] = $false
+            if ($category.Label -eq "Software Installation") {
+                $selectedSoftwareOptions[$_this.Tag] = $false
+            }
+        })
+        $selectedSecurityOptions[$item] = $false
+        if ($category.Label -eq "Software Installation") {
+            $selectedSoftwareOptions[$item] = $false
+        }
+        $stackPanel.Children.Add($subCheckbox)
+        
+        # Check/uncheck sub-checkboxes based on main checkbox state
+        $mainCheckbox.Add_Checked({
+            $subCheckbox.IsChecked = $true
+        })
+        $mainCheckbox.Add_Unchecked({
+            $subCheckbox.IsChecked = $false
+        })
     }
-    $grid.ColumnDefinitions.Add($col)
 }
 
-# Create checkboxes for security options
-$securityOptions = @("Block remote commands", "Change file associations", "Enable Windows Defender settings", "Enable Exploit Guard", "Harden Office", "General OS hardening", "Advanced Windows logging", "Windows 10 Privacy Settings")
-$checkboxes = @{}
-
-for ($i = 0; $i -lt $securityOptions.Length; $i++) {
-    $checkbox = New-Object Windows.Controls.CheckBox
-    $checkbox.Content = $securityOptions[$i]
-    $checkbox.Margin = "5"
-    [Windows.Controls.Grid]::SetRow($checkbox, [int]([Math]::Floor($i / 2)))
-    [Windows.Controls.Grid]::SetColumn($checkbox, $i % 2)
-    $grid.Children.Add($checkbox)
-    $checkboxes += $checkbox
-}
-
-# Create checkboxes for software installation
-$softwareOptions = @("Notepad++", "Google Chrome", "Mozilla Firefox", "Adobe Reader", "7-Zip", "WinRAR", "VLC Player")
-$softwareCheckboxes = @{}
-
-for ($i = 0; $i -lt $softwareOptions.Length; $i++) {
-    $checkbox = New-Object Windows.Controls.CheckBox
-    $checkbox.Content = $softwareOptions[$i]
-    $checkbox.Margin = "5"
-    [Windows.Controls.Grid]::SetRow($checkbox, [int]([Math]::Floor(($i + $securityOptions.Length) / 2)))
-    [Windows.Controls.Grid]::SetColumn($checkbox, ($i + $securityOptions.Length) % 2)
-    $grid.Children.Add($checkbox)
-    $softwareCheckboxes += $checkbox
-}
-
-# Create Select All and Clear All buttons
-$selectAllButton = New-Object Windows.Controls.Button
+# Select All and Clear All buttons
+$selectAllButton = New-Object System.Windows.Controls.Button
 $selectAllButton.Content = "Select All"
-$selectAllButton.Margin = "5"
-[Windows.Controls.Grid]::SetRow($selectAllButton, [int]([Math]::Floor(($securityOptions.Length + $softwareOptions.Length) / 2)))
-[Windows.Controls.Grid]::SetColumn($selectAllButton, 0)
-$grid.Children.Add($selectAllButton)
-
-$clearAllButton = New-Object Windows.Controls.Button
-$clearAllButton.Content = "Clear All"
-$clearAllButton.Margin = "5"
-[Windows.Controls.Grid]::SetRow($clearAllButton, [int]([Math]::Floor(($securityOptions.Length + $softwareOptions.Length) / 2)))
-[Windows.Controls.Grid]::SetColumn($clearAllButton, 1)
-$grid.Children.Add($clearAllButton)
-
-# Create the Submit button
-$submitButton = New-Object Windows.Controls.Button
-$submitButton.Content = "Submit"
-$submitButton.Margin = "5"
-[Windows.Controls.Grid]::SetRow($submitButton, 7)
-[Windows.Controls.Grid]::SetColumn($submitButton, 1)
-$grid.Children.Add($submitButton)
-
-# Add grid to window
-$window.Content = $grid
-
-# Event handlers for Select All and Clear All buttons
 $selectAllButton.Add_Click({
-    foreach ($checkbox in $checkboxes + $softwareCheckboxes) {
-        $checkbox.IsChecked = $true
+    foreach ($child in $stackPanel.Children) {
+        if ($child -is [System.Windows.Controls.CheckBox]) {
+            $child.IsChecked = $true
+        }
     }
 })
+$stackPanel.Children.Add($selectAllButton)
 
+$clearAllButton = New-Object System.Windows.Controls.Button
+$clearAllButton.Content = "Clear All"
 $clearAllButton.Add_Click({
-    foreach ($checkbox in $checkboxes + $softwareCheckboxes) {
-        $checkbox.IsChecked = $false
+    foreach ($child in $stackPanel.Children) {
+        if ($child -is [System.Windows.Controls.CheckBox]) {
+            $child.IsChecked = $false
+        }
     }
 })
+$stackPanel.Children.Add($clearAllButton)
 
-# Submit button click event
+# Battery Report button
+$batteryReportButton = New-Object System.Windows.Controls.Button
+$batteryReportButton.Content = "Generate Battery Report"
+$batteryReportButton.Add_Click({
+    powercfg /batteryreport /output "C:\BatteryReport.html"
+    [System.Windows.MessageBox]::Show("Battery report generated at C:\BatteryReport.html", "Battery Report")
+})
+$stackPanel.Children.Add($batteryReportButton)
+
+# Submit button
+$submitButton = New-Object System.Windows.Controls.Button
+$submitButton.Content = "Submit"
 $submitButton.Add_Click({
-    $selectedSecurityOptions = @{}
-    for ($i = 0; $i -lt $securityOptions.Length; $i++) {
-        if ($checkboxes[$i].IsChecked -eq $true) {
-            $selectedSecurityOptions[$securityOptions[$i]] = $true
-        }
+    # Apply selected security options
+    if ($selectedSecurityOptions["Enable BitLocker"]) {
+        Start-Process -FilePath "powershell.exe" -ArgumentList "Enable-BitLocker -MountPoint 'C:' -PasswordProtector" -NoNewWindow -Wait
     }
-    $selectedSoftwareOptions = @{}
-    for ($i = 0; $i -lt $softwareOptions.Length; $i++) {
-        if ($softwareCheckboxes[$i].IsChecked -eq $true) {
-            $selectedSoftwareOptions[$softwareOptions[$i]] = $true
-        }
-    }
-    $window.Close()
-
-    # Apply security settings
-    if ($selectedSecurityOptions["Block remote commands"]) {
-        reg add HKEY_LOCAL_MACHINE\Software\Microsoft\OLE /v EnableDCOM /t REG_SZ /d N /F
-    }
-    if ($selectedSecurityOptions["Change file associations"]) {
-        assoc .bat=txtfile
-        assoc .cmd=txtfile
-        assoc .chm=txtfile
-        assoc .hta=txtfile
-        assoc .jse=txtfile
-        assoc .js=txtfile
-        assoc .vbe=txtfile
-        assoc .vbs=txtfile
-        assoc .wsc=txtfile
-        assoc .wsf=txtfile
-        assoc .ws=txtfile
-        assoc .wsh=txtfile
-        assoc .scr=txtfile
-        assoc .url=txtfile
-        assoc .ps1=txtfile
-        assoc .iso=txtfile
-        assoc .reg=txtfile
-        assoc .wcx=txtfile
-        assoc .slk=txtfile
-        assoc .iqy=txtfile
-        assoc .prn=txtfile
-        assoc .diff=txtfile
-        assoc .rdg=txtfile
-        assoc .deploy=txtfile
-    }
-    if ($selectedSecurityOptions["Enable Windows Defender settings"]) {
-        setx /M MP_FORCE_USE_SANDBOX 1
-        "%ProgramFiles%\Windows Defender\MpCmdRun.exe" -SignatureUpdate
-        powershell.exe Set-MpPreference -PUAProtection enable
-        reg add "HKCU\SOFTWARE\Microsoft\Windows Defender" /v PassiveMode /t REG_DWORD /d 2 /f
-        powershell.exe Add-MpPreference -AttackSurfaceReductionRules_Ids D4F940AB-401B-4EFC-AADC-AD5F3C50688A -AttackSurfaceReductionRules_Actions Enabled
-        powershell.exe Add-MpPreference -AttackSurfaceReductionRules_Ids 75668C1F-73B5-4CF0-BB93-3ECF5CB7CC84 -AttackSurfaceReductionRules_Actions Enabled
-        powershell.exe Add-MpPreference -AttackSurfaceReductionRules_Ids 92E97FA1-2EDF-4476-BDD6-9DD0B4DDDC7B -AttackSurfaceReductionRules_Actions Enabled
-        powershell.exe Add-MpPreference -AttackSurfaceReductionRules_Ids 3B576869-A4EC-4529-8536-B80A7769E899 -AttackSurfaceReductionRules_Actions Enabled
-        powershell.exe Add-MpPreference -AttackSurfaceReductionRules_Ids 5BEB7EFE-FD9A-4556-801D-275E5FFC04CC -AttackSurfaceReductionRules_Actions Enabled
-        powershell.exe Add-MpPreference -AttackSurfaceReductionRules_Ids BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550 -AttackSurfaceReductionRules_Actions Enabled
-        powershell.exe Add-MpPreference -AttackSurfaceReductionRules_Ids D3E037E1-3EB8-44C8-A917-57927947596D -AttackSurfaceReductionRules_Actions Enabled
-        powershell.exe Add-MpPreference -AttackSurfaceReductionRules_Ids 01443614-cd74-433a-b99e-2ecdc07bfc25 -AttackSurfaceReductionRules_Actions Enabled
-        powershell.exe Add-MpPreference -AttackSurfaceReductionRules_Ids C1DB55AB-C21A-4637-BB3F-A12568109D35 -AttackSurfaceReductionRules_Actions Enabled
-        powershell.exe Add-MpPreference -AttackSurfaceReductionRules_Ids 9E6C4E1F-7D60-472F-BA1A-A39EF669E4B2 -AttackSurfaceReductionRules_Actions Enabled
-        powershell.exe Add-MpPreference -AttackSurfaceReductionRules_Ids B2B3F03D-6A65-4F7B-A9C7-1C7EF74A9BA4 -AttackSurfaceReductionRules_Actions Enabled
+    if ($selectedSecurityOptions["Enable Controlled Folder Access"]) {
         powershell.exe Set-MpPreference -EnableControlledFolderAccess Enabled
         powershell.exe Add-MpPreference -ControlledFolderAccessProtectedFolders "C:\Users\Public", "C:\Users\%username%\Documents"
     }
@@ -199,32 +160,40 @@ $submitButton.Add_Click({
     }
     if ($selectedSoftwareOptions["Google Chrome"]) {
         Invoke-WebRequest -Uri "https://dl.google.com/chrome/install/GoogleChromeStandaloneEnterprise64.msi" -OutFile "C:\Temp\GoogleChrome.msi"
-        Start-Process "msiexec.exe" -ArgumentList "/i C:\Temp\GoogleChrome.msi /quiet /norestart" -NoNewWindow -Wait
+        Start-Process "msiexec.exe" -ArgumentList "/i C:\Temp\GoogleChrome.msi /quiet" -NoNewWindow -Wait
     }
     if ($selectedSoftwareOptions["Mozilla Firefox"]) {
         Invoke-WebRequest -Uri "https://download.mozilla.org/?product=firefox-latest-ssl&os=win64&lang=en-US" -OutFile "C:\Temp\FirefoxInstaller.exe"
         Start-Process "C:\Temp\FirefoxInstaller.exe" -ArgumentList "/S" -NoNewWindow -Wait
     }
     if ($selectedSoftwareOptions["Adobe Reader"]) {
-        Invoke-WebRequest -Uri "https://ardownload2.adobe.com/pub/adobe/reader/win/AcrobatDC/2000920062/AcroRdrDC1900820071_en_US.exe" -OutFile "C:\Temp\AdobeReaderInstaller.exe"
-        Start-Process "C:\Temp\AdobeReaderInstaller.exe" -ArgumentList "/SALL" -NoNewWindow -Wait
+        Invoke-WebRequest -Uri "https://ardownload2.adobe.com/pub/adobe/reader/win/AcrobatDC/2100620048/AcroRdrDC2100620048_en_US.exe" -OutFile "C:\Temp\AcroRdrDC.exe"
+        Start-Process "C:\Temp\AcroRdrDC.exe" -ArgumentList "/sAll /rs /msi EULA_ACCEPT=YES" -NoNewWindow -Wait
     }
     if ($selectedSoftwareOptions["7-Zip"]) {
-        Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z1900-x64.msi" -OutFile "C:\Temp\7zipInstaller.msi"
-        Start-Process "msiexec.exe" -ArgumentList "/i C:\Temp\7zipInstaller.msi /quiet /norestart" -NoNewWindow -Wait
+        Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z1900-x64.msi" -OutFile "C:\Temp\7zip.msi"
+        Start-Process "msiexec.exe" -ArgumentList "/i C:\Temp\7zip.msi /quiet" -NoNewWindow -Wait
     }
     if ($selectedSoftwareOptions["WinRAR"]) {
-        Invoke-WebRequest -Uri "https://www.rarlab.com/rar/winrar-x64-611.exe" -OutFile "C:\Temp\WinRARInstaller.exe"
-        Start-Process "C:\Temp\WinRARInstaller.exe" -ArgumentList "/S" -NoNewWindow -Wait
+        Invoke-WebRequest -Uri "https://www.win-rar.com/fileadmin/winrar-versions/winrar/winrar-x64-602.exe" -OutFile "C:\Temp\WinRAR.exe"
+        Start-Process "C:\Temp\WinRAR.exe" -ArgumentList "/S" -NoNewWindow -Wait
     }
     if ($selectedSoftwareOptions["VLC Player"]) {
-        Invoke-WebRequest -Uri "https://get.videolan.org/vlc/3.0.11.1/win64/vlc-3.0.11.1-win64.exe" -OutFile "C:\Temp\VLCInstaller.exe"
-        Start-Process "C:\Temp\VLCInstaller.exe" -ArgumentList "/S" -NoNewWindow -Wait
+        Invoke-WebRequest -Uri "https://get.videolan.org/vlc/3.0.11.1/win64/vlc-3.0.11.1-win64.exe" -OutFile "C:\Temp\vlc.exe"
+        Start-Process "C:\Temp\vlc.exe" -ArgumentList "/S" -NoNewWindow -Wait
     }
 
-    # Confirm completion
-    [System.Windows.MessageBox]::Show("Selected actions have been applied.", "Completion")
+    [System.Windows.MessageBox]::Show("Configuration applied successfully", "Status")
 })
+$stackPanel.Children.Add($submitButton)
+
+# ScrollViewer to make the window scrollable
+$scrollViewer = New-Object System.Windows.Controls.ScrollViewer
+$scrollViewer.VerticalScrollBarVisibility = "Auto"
+$scrollViewer.Content = $stackPanel
+
+# Set the content of the window
+$window.Content = $scrollViewer
 
 # Show the window
-$window.ShowDialog() | Out-Null
+$window.ShowDialog()
