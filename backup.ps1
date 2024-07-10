@@ -94,6 +94,14 @@ function Create-BackupGUI {
         $yPosition += 30
     }
 
+    # Add a checkbox for full profile backup
+    $checkboxFullProfile = New-Object System.Windows.Forms.CheckBox
+    $checkboxFullProfile.Text = "Backup entire profile"
+    $checkboxFullProfile.Location = New-Object System.Drawing.Point(10, $yPosition)
+    $checkboxFullProfile.Size = New-Object System.Drawing.Size(250, 20)
+    $form.Controls.Add($checkboxFullProfile)
+    $yPosition += 30
+
     # Add checkboxes for additional backup options
     $checkboxGPO = New-Object System.Windows.Forms.CheckBox
     $checkboxGPO.Text = "Backup local GPOs"
@@ -123,7 +131,7 @@ function Create-BackupGUI {
     $labelFileTypes.Size = New-Object System.Drawing.Size(250, 20)
     $form.Controls.Add($labelFileTypes)
 
-    $fileTypes = @('Documents (*.doc, *.docx, *.pdf)', 'Images (*.jpg, *.jpeg, *.png, *.gif)', 'Music (*.mp3, *.wav)', 'Videos (*.mp4, *.avi, *.mkv)')
+    $fileTypes = @('Documents (*.doc, *.docx, *.pdf)', 'Images (*.jpg, *.jpeg, *.png, *.gif)', 'Music (*.mp3, *.wav)', 'Videos (*.mp4, *.avi, *.mkv)', 'Archives (*.zip, *.rar, *.7z)', 'Scripts (*.ps1, *.sh, *.py, *.js, *.rb)')
     $fileTypeCheckboxes = @()
     $yFileTypePosition = 160
     foreach ($fileType in $fileTypes) {
@@ -181,10 +189,13 @@ function Create-BackupGUI {
             return
         }
 
-        $selectedFileTypes = $fileTypeCheckboxes | Where-Object { $_.Checked }
-        if (-not $selectedFileTypes) {
-            $logLabel.Text = "Please select at least one file type to backup."
-            return
+        $backupFullProfile = $checkboxFullProfile.Checked
+        if (-not $backupFullProfile) {
+            $selectedFileTypes = $fileTypeCheckboxes | Where-Object { $_.Checked }
+            if (-not $selectedFileTypes) {
+                $logLabel.Text = "Please select at least one file type to backup."
+                return
+            }
         }
 
         $backupPath = $backupPathBox.Text
@@ -206,15 +217,21 @@ function Create-BackupGUI {
 
         foreach ($user in $selectedUsers) {
             $sourcePath = Join-Path -Path "C:\Users" -ChildPath $user.Text
-            foreach ($fileType in $selectedFileTypes) {
-                $fileTypePatterns = switch ($fileType.Text) {
-                    'Documents (*.doc, *.docx, *.pdf)' { '*.doc', '*.docx', '*.pdf' }
-                    'Images (*.jpg, *.jpeg, *.png, *.gif)' { '*.jpg', '*.jpeg', '*.png', '*.gif' }
-                    'Music (*.mp3, *.wav)' { '*.mp3', '*.wav' }
-                    'Videos (*.mp4, *.avi, *.mkv)' { '*.mp4', '*.avi', '*.mkv' }
-                }
-                foreach ($pattern in $fileTypePatterns) {
-                    $totalFiles += (Get-ChildItem -Path $sourcePath -Recurse -Filter $pattern -ErrorAction SilentlyContinue).Count
+            if ($backupFullProfile) {
+                $totalFiles += (Get-ChildItem -Path $sourcePath -Recurse -ErrorAction SilentlyContinue).Count
+            } else {
+                foreach ($fileType in $selectedFileTypes) {
+                    $fileTypePatterns = switch ($fileType.Text) {
+                        'Documents (*.doc, *.docx, *.pdf)' { '*.doc', '*.docx', '*.pdf' }
+                        'Images (*.jpg, *.jpeg, *.png, *.gif)' { '*.jpg', '*.jpeg', '*.png', '*.gif' }
+                        'Music (*.mp3, *.wav)' { '*.mp3', '*.wav' }
+                        'Videos (*.mp4, *.avi, *.mkv)' { '*.mp4', '*.avi', '*.mkv' }
+                        'Archives (*.zip, *.rar, *.7z)' { '*.zip', '*.rar', '*.7z' }
+                        'Scripts (*.ps1, *.sh, *.py, *.js, *.rb)' { '*.ps1', '*.sh', '*.py', '*.js', '*.rb' }
+                    }
+                    foreach ($pattern in $fileTypePatterns) {
+                        $totalFiles += (Get-ChildItem -Path $sourcePath -Recurse -Filter $pattern -ErrorAction SilentlyContinue).Count
+                    }
                 }
             }
         }
@@ -236,44 +253,78 @@ function Create-BackupGUI {
             }
 
             $sourcePath = Join-Path -Path "C:\Users" -ChildPath $user.Text
-
-            foreach ($fileType in $selectedFileTypes) {
-                $fileTypePatterns = switch ($fileType.Text) {
-                    'Documents (*.doc, *.docx, *.pdf)' { '*.doc', '*.docx', '*.pdf' }
-                    'Images (*.jpg, *.jpeg, *.png, *.gif)' { '*.jpg', '*.jpeg', '*.png', '*.gif' }
-                    'Music (*.mp3, *.wav)' { '*.mp3', '*.wav' }
-                    'Videos (*.mp4, *.avi, *.mkv)' { '*.mp4', '*.avi', '*.mkv' }
-                }
-
-                foreach ($pattern in $fileTypePatterns) {
-                    Get-ChildItem -Path $sourcePath -Recurse -Filter $pattern -ErrorAction SilentlyContinue | ForEach-Object {
-                        if ($cancelRequested) {
-                            Add-Content -Path $logFile -Value "Backup cancelled by user: $(Get-Date)"
-                            $logLabel.Text = "Backup cancelled."
-                            return
+            if ($backupFullProfile) {
+                Get-ChildItem -Path $sourcePath -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+                    if ($cancelRequested) {
+                        Add-Content -Path $logFile -Value "Backup cancelled by user: $(Get-Date)"
+                        $logLabel.Text = "Backup cancelled."
+                        return
+                    }
+                    try {
+                        $destinationFilePath = $_.FullName.Replace($sourcePath, $backupPath)
+                        if ($zipBackup) {
+                            $zipFilePath = $destinationFilePath.Replace("C:\Temp", $backupPath)
+                            $zipArchive = [System.IO.Compression.ZipFile]::Open($backupPath, [System.IO.Compression.ZipArchiveMode]::Update)
+                            $zipArchive.CreateEntryFromFile($_.FullName, $zipFilePath)
+                            $zipArchive.Dispose()
+                        } else {
+                            $destinationDir = Split-Path -Path $destinationFilePath -Parent
+                            if (-not (Test-Path -Path $destinationDir)) {
+                                New-Item -ItemType Directory -Path $destinationDir -Force
+                            }
+                            Copy-Item -Path $_.FullName -Destination $destinationFilePath -Force -ErrorAction Stop
                         }
-                        try {
-                            $destinationFilePath = $_.FullName.Replace($sourcePath, $backupPath)
-                            if ($zipBackup) {
-                                $zipFilePath = $destinationFilePath.Replace("C:\Temp", $backupPath)
-                                $zipArchive = [System.IO.Compression.ZipFile]::Open($backupPath, [System.IO.Compression.ZipArchiveMode]::Update)
-                                $zipArchive.CreateEntryFromFile($_.FullName, $zipFilePath)
-                                $zipArchive.Dispose()
-                            } else {
-                                $destinationDir = Split-Path -Path $destinationFilePath -Parent
-                                if (-not (Test-Path -Path $destinationDir)) {
-                                    New-Item -ItemType Directory -Path $destinationDir -Force
+                        $copiedFiles++
+                        $progressValue = [math]::Round((($copiedFiles / $totalFiles) * 100), 0)
+                        if ($progressValue -le $progressBar.Maximum) {
+                            $progressBar.Value = $progressValue
+                        }
+                    } catch {
+                        $logLabel.Text = "Error copying file: $_.FullName"
+                        Add-Content -Path $logFile -Value "Error copying file: $_.FullName - $_"
+                    }
+                }
+            } else {
+                foreach ($fileType in $selectedFileTypes) {
+                    $fileTypePatterns = switch ($fileType.Text) {
+                        'Documents (*.doc, *.docx, *.pdf)' { '*.doc', '*.docx', '*.pdf' }
+                        'Images (*.jpg, *.jpeg, *.png, *.gif)' { '*.jpg', '*.jpeg', '*.png', '*.gif' }
+                        'Music (*.mp3, *.wav)' { '*.mp3', '*.wav' }
+                        'Videos (*.mp4, *.avi, *.mkv)' { '*.mp4', '*.avi', '*.mkv' }
+                        'Archives (*.zip, *.rar, *.7z)' { '*.zip', '*.rar', '*.7z' }
+                        'Scripts (*.ps1, *.sh, *.py, *.js, *.rb)' { '*.ps1', '*.sh', '*.py', '*.js', '*.rb' }
+                    }
+
+                    foreach ($pattern in $fileTypePatterns) {
+                        Get-ChildItem -Path $sourcePath -Recurse -Filter $pattern -ErrorAction SilentlyContinue | ForEach-Object {
+                            if ($cancelRequested) {
+                                Add-Content -Path $logFile -Value "Backup cancelled by user: $(Get-Date)"
+                                $logLabel.Text = "Backup cancelled."
+                                return
+                            }
+                            try {
+                                $destinationFilePath = $_.FullName.Replace($sourcePath, $backupPath)
+                                if ($zipBackup) {
+                                    $zipFilePath = $destinationFilePath.Replace("C:\Temp", $backupPath)
+                                    $zipArchive = [System.IO.Compression.ZipFile]::Open($backupPath, [System.IO.Compression.ZipArchiveMode]::Update)
+                                    $zipArchive.CreateEntryFromFile($_.FullName, $zipFilePath)
+                                    $zipArchive.Dispose()
+                                } else {
+                                    $destinationDir = Split-Path -Path $destinationFilePath -Parent
+                                    if (-not (Test-Path -Path $destinationDir)) {
+                                        New-Item -ItemType Directory -Path $destinationDir -Force
+                                    }
+                                    Copy-Item -Path $_.FullName -Destination $destinationFilePath -Force -ErrorAction Stop
                                 }
-                                Copy-Item -Path $_.FullName -Destination $destinationFilePath -Force -ErrorAction Stop
+                                $copiedFiles++
+                                $progressValue = [math]::Round((($copiedFiles / $totalFiles) * 100), 0)
+                                if ($progressValue -le $progressBar.Maximum) {
+                                    $progressBar.Value = $progressValue
+                                }
+                            } catch {
+                                $logLabel.Text = "Error copying file: $_.FullName"
+                                Add-Content -Path $logFile -Value "Error copying file: $_.FullName - $_"
                             }
-                            $copiedFiles++
-                            $progressValue = [math]::Round((($copiedFiles / $totalFiles) * 100), 0)
-                            if ($progressValue -le $progressBar.Maximum) {
-                                $progressBar.Value = $progressValue
-                            }
-                        } catch {
-                            $logLabel.Text = "Error copying file: $_.FullName"
-                            Add-Content -Path $logFile -Value "Error copying file: $_.FullName - $_"
                         }
                     }
                 }
