@@ -15,7 +15,7 @@ function Create-BackupGUI {
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = "User Profiles and Applications Backup"
-    $form.Size = New-Object System.Drawing.Size(700, 800)
+    $form.Size = New-Object System.Drawing.Size(700, 850)
     $form.StartPosition = "CenterScreen"
 
     # Label for backup path
@@ -122,6 +122,20 @@ function Create-BackupGUI {
     $checkboxPrinters.Location = New-Object System.Drawing.Point(10, $yPosition)
     $checkboxPrinters.Size = New-Object System.Drawing.Size(250, 20)
     $form.Controls.Add($checkboxPrinters)
+    $yPosition += 30
+
+    $checkboxDrivers = New-Object System.Windows.Forms.CheckBox
+    $checkboxDrivers.Text = "Backup Windows drivers"
+    $checkboxDrivers.Location = New-Object System.Drawing.Point(10, $yPosition)
+    $checkboxDrivers.Size = New-Object System.Drawing.Size(250, 20)
+    $form.Controls.Add($checkboxDrivers)
+    $yPosition += 30
+
+    $checkboxPSTFiles = New-Object System.Windows.Forms.CheckBox
+    $checkboxPSTFiles.Text = "Backup Office PST files"
+    $checkboxPSTFiles.Location = New-Object System.Drawing.Point(10, $yPosition)
+    $checkboxPSTFiles.Size = New-Object System.Drawing.Size(250, 20)
+    $form.Controls.Add($checkboxPSTFiles)
     $yPosition += 30
 
     # Add checkboxes for file types to backup
@@ -384,19 +398,56 @@ function Create-BackupGUI {
                 if (-not (Test-Path -Path $printersBackupPath)) {
                     New-Item -ItemType Directory -Path $printersBackupPath -Force
                 }
-                $printers = Get-Printer | Select-Object Name, DriverName, PortName
-                $printersFile = Join-Path -Path $printersBackupPath -ChildPath "printers.txt"
-                $printers | Format-Table -AutoSize | Out-String | Set-Content -Path $printersFile
-                Add-Content -Path $logFile -Value "Printers list backed up successfully."
-
-                $drivers = Get-PrinterDriver | Select-Object Name, Manufacturer, Version
-                $driversFile = Join-Path -Path $printersBackupPath -ChildPath "drivers.txt"
-                $drivers | Format-Table -AutoSize | Out-String | Set-Content -Path $driversFile
+                Start-Process -FilePath "printui.exe" -ArgumentList "/e", "/n", "/o", "/x", "/m", "*", "/path", $printersBackupPath -NoNewWindow -Wait
                 Add-Content -Path $logFile -Value "Printer drivers backed up successfully."
             } catch {
                 $logLabel.Text = "Error backing up printers and drivers: $_"
                 Add-Content -Path $logFile -Value "Error backing up printers and drivers: $_"
             }
+        }
+
+        # Backup Windows drivers if selected
+        if ($checkboxDrivers.Checked) {
+            try {
+                $driversBackupPath = Join-Path -Path $backupPath -ChildPath "WindowsDrivers"
+                if (-not (Test-Path -Path $driversBackupPath)) {
+                    New-Item -ItemType Directory -Path $driversBackupPath -Force
+                }
+                Export-WindowsDriver -Online -Destination $driversBackupPath
+                Add-Content -Path $logFile -Value "Windows drivers backed up successfully."
+            } catch {
+                $logLabel.Text = "Error backing up Windows drivers: $_"
+                Add-Content -Path $logFile -Value "Error backing up Windows drivers: $_"
+            }
+        }
+
+        # Backup Office PST files if selected
+        if ($checkboxPSTFiles.Checked) {
+            foreach ($user in $selectedUsers) {
+                $pstFilesPath = Join-Path -Path "C:\Users" -ChildPath $user.Text -ChildPath "AppData\Local\Microsoft\Outlook"
+                if (Test-Path $pstFilesPath) {
+                    Get-ChildItem -Path $pstFilesPath -Filter "*.pst" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+                        if ($cancelRequested) {
+                            Add-Content -Path $logFile -Value "Backup cancelled by user: $(Get-Date)"
+                            $logLabel.Text = "Backup cancelled."
+                            return
+                        }
+                        try {
+                            $destinationFilePath = $_.FullName.Replace("C:\Users", $backupPath)
+                            $destinationDir = Split-Path -Path $destinationFilePath -Parent
+                            if (-not (Test-Path -Path $destinationDir)) {
+                                New-Item -ItemType Directory -Path $destinationDir -Force
+                            }
+                            Copy-Item -Path $_.FullName -Destination $destinationFilePath -Force -ErrorAction Stop
+                            Add-Content -Path $logFile -Value "PST file copied: $($_.FullName) to $destinationFilePath"
+                        } catch {
+                            $logLabel.Text = "Error copying PST file: $_.FullName"
+                            Add-Content -Path $logFile -Value "Error copying PST file: $_.FullName - $_"
+                        }
+                    }
+                }
+            }
+            Add-Content -Path $logFile -Value "Office PST files backed up successfully."
         }
 
         $logLabel.Text = "Backup completed."
