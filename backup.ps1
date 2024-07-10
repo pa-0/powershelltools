@@ -1,363 +1,178 @@
 Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-function Start-ProcessAsAdmin {
-    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-        $messageBoxOptions = [System.Windows.Forms.MessageBoxOptions]::ServiceNotification
-        [System.Windows.Forms.MessageBox]::Show("Please run this script as an administrator.", "Administrator Privileges Required", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning, [System.Windows.Forms.MessageBoxDefaultButton]::Button1, $messageBoxOptions)
-        exit
-    }
+# Créer le formulaire
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "Sélection de la sauvegarde"
+$form.Size = New-Object System.Drawing.Size(400, 600)
+$form.StartPosition = "CenterScreen"
+
+# Ajouter une étiquette pour le chemin de sauvegarde
+$label = New-Object System.Windows.Forms.Label
+$label.Text = "Chemin de sauvegarde :"
+$label.Location = New-Object System.Drawing.Point(10, 10)
+$form.Controls.Add($label)
+
+# Ajouter une boîte de texte pour entrer le chemin de sauvegarde
+$backupPathBox = New-Object System.Windows.Forms.TextBox
+$backupPathBox.Size = New-Object System.Drawing.Size(250, 20)
+$backupPathBox.Location = New-Object System.Drawing.Point(10, 30)
+$backupPathBox.Text = "C:\Backup"
+$form.Controls.Add($backupPathBox)
+
+# Ajouter des checkboxes pour les types de fichiers et autres options de sauvegarde
+$checkboxes = @()
+$fileTypes = @("Documents", "Music", "Videos", "Images", "Programs", "Other", "Imprimante Drivers", "Windows Drivers", "Profils Utilisateurs", "Crypto Wallets")
+for ($i = 0; $i -lt $fileTypes.Length; $i++) {
+    $checkbox = New-Object System.Windows.Forms.CheckBox
+    $checkbox.Text = $fileTypes[$i]
+    $checkbox.Location = New-Object System.Drawing.Point(10, 60 + ($i * 30))
+    $form.Controls.Add($checkbox)
+    $checkboxes += $checkbox
 }
 
-function Create-BackupGUI {
-    Start-ProcessAsAdmin
+# Ajouter une barre de progression
+$progressBar = New-Object System.Windows.Forms.ProgressBar
+$progressBar.Minimum = 0
+$progressBar.Maximum = 100
+$progressBar.Value = 0
+$progressBar.Size = New-Object System.Drawing.Size(350, 20)
+$progressBar.Location = New-Object System.Drawing.Point(10, 450)
+$form.Controls.Add($progressBar)
 
-    $form = New-Object System.Windows.Forms.Form
-    $form.Text = "User Profiles and Applications Backup"
-    $form.Size = New-Object System.Drawing.Size(700, 800)
-    $form.StartPosition = "CenterScreen"
+# Ajouter une étiquette pour afficher les erreurs
+$errorLabel = New-Object System.Windows.Forms.Label
+$errorLabel.Size = New-Object System.Drawing.Size(350, 50)
+$errorLabel.Location = New-Object System.Drawing.Point(10, 480)
+$form.Controls.Add($errorLabel)
 
-    # Label for backup path
-    $label = New-Object System.Windows.Forms.Label
-    $label.Text = "Backup path:"
-    $label.Location = New-Object System.Drawing.Point(10, 10)
-    $label.Size = New-Object System.Drawing.Size(150, 20)
-    $form.Controls.Add($label)
+# Ajouter un bouton pour lancer la sauvegarde
+$okButton = New-Object System.Windows.Forms.Button
+$okButton.Text = "Lancer la sauvegarde"
+$okButton.Location = New-Object System.Drawing.Point(10, 540)
+$form.Controls.Add($okButton)
 
-    # Textbox for entering the backup path
-    $backupPathBox = New-Object System.Windows.Forms.TextBox
-    $backupPathBox.Size = New-Object System.Drawing.Size(450, 20)
-    $backupPathBox.Location = New-Object System.Drawing.Point(10, 35)
-    $backupPathBox.Text = "C:\Backup"
-    $form.Controls.Add($backupPathBox)
+# Ajouter un bouton pour annuler la sauvegarde
+$cancelButton = New-Object System.Windows.Forms.Button
+$cancelButton.Text = "Annuler"
+$cancelButton.Location = New-Object System.Drawing.Point(120, 540)
+$form.Controls.Add($cancelButton)
 
-    # Radio buttons for selecting backup type (directory or ZIP file)
-    $backupTypeGroup = New-Object System.Windows.Forms.GroupBox
-    $backupTypeGroup.Text = "Select backup type"
-    $backupTypeGroup.Location = New-Object System.Drawing.Point(10, 65)
-    $backupTypeGroup.Size = New-Object System.Drawing.Size(550, 60)
-    $form.Controls.Add($backupTypeGroup)
+# Variable pour gérer l'annulation
+$cancelRequested = $false
 
-    $radioDir = New-Object System.Windows.Forms.RadioButton
-    $radioDir.Text = "Directory"
-    $radioDir.Location = New-Object System.Drawing.Point(10, 20)
-    $radioDir.Size = New-Object System.Drawing.Size(100, 20)
-    $radioDir.Checked = $true
-    $backupTypeGroup.Controls.Add($radioDir)
+$cancelButton.Add_Click({
+    $cancelRequested = $true
+    Write-Host "Annulation de la sauvegarde demandée."
+})
 
-    $radioZip = New-Object System.Windows.Forms.RadioButton
-    $radioZip.Text = "ZIP File"
-    $radioZip.Location = New-Object System.Drawing.Point(120, 20)
-    $radioZip.Size = New-Object System.Drawing.Size(100, 20)
-    $backupTypeGroup.Controls.Add($radioZip)
-
-    # Button to select backup path
-    $backupPathButton = New-Object System.Windows.Forms.Button
-    $backupPathButton.Text = "Select Backup Path"
-    $backupPathButton.Location = New-Object System.Drawing.Point(470, 32)
-    $backupPathButton.Size = New-Object System.Drawing.Size(100, 25)
-    $backupPathButton.Add_Click({
-        if ($radioDir.Checked) {
-            $folderDialog = New-Object System.Windows.Forms.FolderBrowserDialog
-            if ($folderDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-                $backupPathBox.Text = $folderDialog.SelectedPath
-            }
-        } elseif ($radioZip.Checked) {
-            $saveFileDialog = New-Object System.Windows.Forms.SaveFileDialog
-            $saveFileDialog.Filter = "ZIP files (*.zip)|*.zip"
-            if ($saveFileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-                $backupPathBox.Text = $saveFileDialog.FileName
-            }
+$okButton.Add_Click({
+    $backupPath = $backupPathBox.Text
+    if (-not (Test-Path -Path $backupPath)) {
+        try {
+            New-Item -ItemType Directory -Path $backupPath -ErrorAction Stop
+        } catch {
+            $errorLabel.Text = "Erreur de création du répertoire de sauvegarde : $_"
+            return
         }
-    })
-    $form.Controls.Add($backupPathButton)
-
-    # Label for user profiles
-    $labelUsers = New-Object System.Windows.Forms.Label
-    $labelUsers.Text = "Select profiles to backup:"
-    $labelUsers.Location = New-Object System.Drawing.Point(10, 135)
-    $labelUsers.Size = New-Object System.Drawing.Size(250, 20)
-    $form.Controls.Add($labelUsers)
-
-    # Add checkboxes for user profiles found in C:\Users
-    $checkboxes = @()
-    $users = Get-ChildItem -Path "C:\Users" | Where-Object { $_.PSIsContainer }
-    $yPosition = 160
-    foreach ($user in $users) {
-        $checkbox = New-Object System.Windows.Forms.CheckBox
-        $checkbox.Text = $user.Name
-        $checkbox.Location = New-Object System.Drawing.Point(10, $yPosition)
-        $checkbox.Size = New-Object System.Drawing.Size(250, 20)
-        $form.Controls.Add($checkbox)
-        $checkboxes += $checkbox
-        $yPosition += 30
     }
 
-    # Add checkboxes for additional backup options
-    $checkboxGPO = New-Object System.Windows.Forms.CheckBox
-    $checkboxGPO.Text = "Backup local GPOs"
-    $checkboxGPO.Location = New-Object System.Drawing.Point(10, $yPosition)
-    $checkboxGPO.Size = New-Object System.Drawing.Size(250, 20)
-    $form.Controls.Add($checkboxGPO)
-    $yPosition += 30
-
-    $checkboxRegistry = New-Object System.Windows.Forms.CheckBox
-    $checkboxRegistry.Text = "Backup registry keys"
-    $checkboxRegistry.Location = New-Object System.Drawing.Point(10, $yPosition)
-    $checkboxRegistry.Size = New-Object System.Drawing.Size(250, 20)
-    $form.Controls.Add($checkboxRegistry)
-    $yPosition += 30
-
-    $checkboxPrinters = New-Object System.Windows.Forms.CheckBox
-    $checkboxPrinters.Text = "Backup printers and drivers"
-    $checkboxPrinters.Location = New-Object System.Drawing.Point(10, $yPosition)
-    $checkboxPrinters.Size = New-Object System.Drawing.Size(250, 20)
-    $form.Controls.Add($checkboxPrinters)
-    $yPosition += 30
-
-    # Add checkboxes for file types to backup
-    $labelFileTypes = New-Object System.Windows.Forms.Label
-    $labelFileTypes.Text = "Select file types to backup:"
-    $labelFileTypes.Location = New-Object System.Drawing.Point(300, 135)
-    $labelFileTypes.Size = New-Object System.Drawing.Size(250, 20)
-    $form.Controls.Add($labelFileTypes)
-
-    $fileTypes = @('Documents (*.doc, *.docx, *.pdf)', 'Images (*.jpg, *.jpeg, *.png, *.gif)', 'Music (*.mp3, *.wav)', 'Videos (*.mp4, *.avi, *.mkv)')
-    $fileTypeCheckboxes = @()
-    $yFileTypePosition = 160
-    foreach ($fileType in $fileTypes) {
-        $fileTypeCheckbox = New-Object System.Windows.Forms.CheckBox
-        $fileTypeCheckbox.Text = $fileType
-        $fileTypeCheckbox.Location = New-Object System.Drawing.Point(300, $yFileTypePosition)
-        $fileTypeCheckbox.Size = New-Object System.Drawing.Size(250, 20)
-        $form.Controls.Add($fileTypeCheckbox)
-        $fileTypeCheckboxes += $fileTypeCheckbox
-        $yFileTypePosition += 30
+    $fileExtensions = @{
+        "Documents" = @("*.doc", "*.docx", "*.pdf", "*.txt", "*.xls", "*.xlsx", "*.ppt", "*.pptx")
+        "Music" = @("*.mp3", "*.wav", "*.aac", "*.flac", "*.m4a")
+        "Videos" = @("*.mp4", "*.avi", "*.mkv", "*.mov", "*.wmv")
+        "Images" = @("*.jpg", "*.jpeg", "*.png", "*.gif", "*.bmp", "*.tiff")
+        "Programs" = @("*.exe", "*.msi", "*.bat", "*.cmd", "*.ps1")
+        "Other" = @("*.*")
+        "Crypto Wallets" = @("*.wallet", "*.crypto", "*.json")
     }
 
-    # Add a progress bar
-    $progressBar = New-Object System.Windows.Forms.ProgressBar
-    $progressBar.Minimum = 0
-    $progressBar.Maximum = 100
-    $progressBar.Value = 0
-    $progressBar.Size = New-Object System.Drawing.Size(650, 20)
-    $progressBar.Location = New-Object System.Drawing.Point(10, 500)
-    $form.Controls.Add($progressBar)
+    $totalFiles = 0
+    $copiedFiles = 0
 
-    # Add a label to display logs and errors
-    $logLabel = New-Object System.Windows.Forms.Label
-    $logLabel.Size = New-Object System.Drawing.Size(650, 100)
-    $logLabel.Location = New-Object System.Drawing.Point(10, 530)
-    $logLabel.BorderStyle = [System.Windows.Forms.BorderStyle]::Fixed3D
-    $form.Controls.Add($logLabel)
-
-    # Add a button to start the backup
-    $okButton = New-Object System.Windows.Forms.Button
-    $okButton.Text = "Start Backup"
-    $okButton.Location = New-Object System.Drawing.Point(10, 650)
-    $okButton.Size = New-Object System.Drawing.Size(150, 30)
-    $form.Controls.Add($okButton)
-
-    # Add a button to cancel the backup
-    $cancelButton = New-Object System.Windows.Forms.Button
-    $cancelButton.Text = "Cancel"
-    $cancelButton.Location = New-Object System.Drawing.Point(170, 650)
-    $cancelButton.Size = New-Object System.Drawing.Size(150, 30)
-    $form.Controls.Add($cancelButton)
-
-    # Variable to handle cancellation
-    $cancelRequested = $false
-
-    $cancelButton.Add_Click({
-        $cancelRequested = $true
-        Write-Host "Backup cancellation requested."
-    })
-
-    $okButton.Add_Click({
-        $selectedUsers = $checkboxes | Where-Object { $_.Checked }
-        if (-not $selectedUsers) {
-            $logLabel.Text = "Please select at least one profile to backup."
-            return
-        }
-
-        $selectedFileTypes = $fileTypeCheckboxes | Where-Object { $_.Checked }
-        if (-not $selectedFileTypes) {
-            $logLabel.Text = "Please select at least one file type to backup."
-            return
-        }
-
-        $backupPath = $backupPathBox.Text
-        $zipBackup = $radioZip.Checked
-
-        if ($zipBackup -and (Test-Path $backupPath)) { Remove-Item $backupPath -Force }
-
-        if (-not $zipBackup -and -not (Test-Path -Path $backupPath)) {
-            try {
-                New-Item -ItemType Directory -Path $backupPath -ErrorAction Stop
-            } catch {
-                $logLabel.Text = "Error creating backup directory: $_"
-                return
+    # Compter le nombre total de fichiers à copier
+    foreach ($checkbox in $checkboxes) {
+        if ($checkbox.Checked) {
+            $type = $checkbox.Text
+            if ($type -eq "Imprimante Drivers" -or $type -eq "Windows Drivers" -or $type -eq "Profils Utilisateurs") {
+                continue
+            }
+            foreach ($extension in $fileExtensions[$type]) {
+                $totalFiles += (Get-ChildItem -Path "C:\Users\*" -Include $extension -Recurse -ErrorAction SilentlyContinue).Count
             }
         }
+    }
 
-        $totalFiles = 0
-        $copiedFiles = 0
+    if ($totalFiles -eq 0 -and -not ($checkboxes | Where-Object { $_.Checked -and $_.Text -eq "Imprimante Drivers" -or $_.Text -eq "Windows Drivers" -or $_.Text -eq "Profils Utilisateurs" })) {
+        $errorLabel.Text = "Aucun fichier trouvé pour les types sélectionnés."
+        return
+    }
 
-        foreach ($user in $selectedUsers) {
-            $sourcePath = Join-Path -Path "C:\Users" -ChildPath $user.Text
-            foreach ($fileType in $selectedFileTypes) {
-                $fileTypePatterns = switch ($fileType.Text) {
-                    'Documents (*.doc, *.docx, *.pdf)' { '*.doc', '*.docx', '*.pdf' }
-                    'Images (*.jpg, *.jpeg, *.png, *.gif)' { '*.jpg', '*.jpeg', '*.png', '*.gif' }
-                    'Music (*.mp3, *.wav)' { '*.mp3', '*.wav' }
-                    'Videos (*.mp4, *.avi, *.mkv)' { '*.mp4', '*.avi', '*.mkv' }
+    # Journalisation des opérations
+    $logFile = Join-Path -Path $backupPath -ChildPath "backup_log.txt"
+    Add-Content -Path $logFile -Value "Début de la sauvegarde : $(Get-Date)"
+
+    # Sauvegarder les fichiers et mettre à jour la barre de progression
+    foreach ($checkbox in $checkboxes) {
+        if ($checkbox.Checked) {
+            $type = $checkbox.Text
+            if ($type -eq "Imprimante Drivers") {
+                # Sauvegarder les drivers d'imprimantes
+                $printerDriversBackupPath = Join-Path -Path $backupPath -ChildPath "PrinterDrivers"
+                if (-not (Test-Path -Path $printerDriversBackupPath)) {
+                    New-Item -ItemType Directory -Path $printerDriversBackupPath -Force
                 }
-                foreach ($pattern in $fileTypePatterns) {
-                    $totalFiles += (Get-ChildItem -Path $sourcePath -Recurse -Filter $pattern -ErrorAction SilentlyContinue).Count
+                Start-Process -FilePath "printui.exe" -ArgumentList "/e", "/n", "/o", "/x", "/m", "*", "/path", $printerDriversBackupPath -NoNewWindow -Wait
+                Add-Content -Path $logFile -Value "Sauvegarde des drivers d'imprimantes terminée."
+            } elseif ($type -eq "Windows Drivers") {
+                # Sauvegarder les drivers Windows
+                $windowsDriversBackupPath = Join-Path -Path $backupPath -ChildPath "WindowsDrivers"
+                Export-WindowsDriver -Online -Destination $windowsDriversBackupPath
+                Add-Content -Path $logFile -Value "Sauvegarde des drivers Windows terminée."
+            } elseif ($type -eq "Profils Utilisateurs") {
+                # Sauvegarder les profils utilisateurs
+                $users = Get-ChildItem -Path "C:\Users" -Directory
+                foreach ($user in $users) {
+                    $destinationPath = Join-Path -Path $backupPath -ChildPath "Users\$($user.Name)"
+                    Copy-Item -Path $user.FullName -Destination $destinationPath -Recurse -Force -ErrorAction SilentlyContinue
                 }
-            }
-        }
-
-        if ($totalFiles -eq 0) {
-            $logLabel.Text = "No files found for the selected profiles and file types."
-            return
-        }
-
-        $logFile = Join-Path -Path $backupPath -ChildPath "backup_log.txt"
-        Add-Content -Path $logFile -Value "Backup start: $(Get-Date)"
-        $logLabel.Text = "Backup started..."
-
-        foreach ($user in $selectedUsers) {
-            if ($cancelRequested) {
-                Add-Content -Path $logFile -Value "Backup cancelled by user: $(Get-Date)"
-                $logLabel.Text = "Backup cancelled."
-                return
-            }
-
-            $sourcePath = Join-Path -Path "C:\Users" -ChildPath $user.Text
-
-            foreach ($fileType in $selectedFileTypes) {
-                $fileTypePatterns = switch ($fileType.Text) {
-                    'Documents (*.doc, *.docx, *.pdf)' { '*.doc', '*.docx', '*.pdf' }
-                    'Images (*.jpg, *.jpeg, *.png, *.gif)' { '*.jpg', '*.jpeg', '*.png', '*.gif' }
-                    'Music (*.mp3, *.wav)' { '*.mp3', '*.wav' }
-                    'Videos (*.mp4, *.avi, *.mkv)' { '*.mp4', '*.avi', '*.mkv' }
-                }
-
-                foreach ($pattern in $fileTypePatterns) {
-                    Get-ChildItem -Path $sourcePath -Recurse -Filter $pattern -ErrorAction SilentlyContinue | ForEach-Object {
+                Add-Content -Path $logFile -Value "Sauvegarde des profils utilisateurs terminée."
+            } else {
+                # Sauvegarder les fichiers sélectionnés
+                foreach ($extension in $fileExtensions[$type]) {
+                    $files = Get-ChildItem -Path "C:\Users\*" -Include $extension -Recurse -ErrorAction SilentlyContinue
+                    foreach ($file in $files) {
                         if ($cancelRequested) {
-                            Add-Content -Path $logFile -Value "Backup cancelled by user: $(Get-Date)"
-                            $logLabel.Text = "Backup cancelled."
+                            Add-Content -Path $logFile -Value "Sauvegarde annulée par l'utilisateur : $(Get-Date)"
+                            [System.Windows.Forms.MessageBox]::Show("Sauvegarde annulée.")
                             return
                         }
+
                         try {
-                            $destinationFilePath = $_.FullName.Replace($sourcePath, $backupPath)
-                            if ($zipBackup) {
-                                $zipFilePath = $destinationFilePath.Replace("C:\Temp", $backupPath)
-                                $zipArchive = [System.IO.Compression.ZipFile]::Open($backupPath, [System.IO.Compression.ZipArchiveMode]::Update)
-                                $zipArchive.CreateEntryFromFile($_.FullName, $zipFilePath)
-                                $zipArchive.Dispose()
-                            } else {
-                                $destinationDir = Split-Path -Path $destinationFilePath -Parent
-                                if (-not (Test-Path -Path $destinationDir)) {
-                                    New-Item -ItemType Directory -Path $destinationDir -Force
-                                }
-                                Copy-Item -Path $_.FullName -Destination $destinationFilePath -Force -ErrorAction Stop
+                            $destinationPath = Join-Path -Path $backupPath -ChildPath $file.FullName.Substring(3)
+                            $destinationDir = Split-Path -Path $destinationPath -Parent
+                            if (-not (Test-Path -Path $destinationDir)) {
+                                New-Item -ItemType Directory -Path $destinationDir -Force
                             }
+                            Copy-Item -Path $file.FullName -Destination $destinationPath -Force -ErrorAction Stop
                             $copiedFiles++
-                            $progressValue = [math]::Round((($copiedFiles / $totalFiles) * 100), 0)
-                            if ($progressValue -le $progressBar.Maximum) {
-                                $progressBar.Value = $progressValue
-                            }
+                            $progressBar.Value = [math]::Round(($copiedFiles / $totalFiles) * 100)
+                            Add-Content -Path $logFile -Value "Fichier copié : $($file.FullName) vers $destinationPath"
                         } catch {
-                            $logLabel.Text = "Error copying file: $_.FullName"
-                            Add-Content -Path $logFile -Value "Error copying file: $_.FullName - $_"
+                            $errorLabel.Text += "Erreur de copie du fichier $($file.FullName) : $_`n"
+                            Add-Content -Path $logFile -Value "Erreur de copie du fichier $($file.FullName) : $_"
                         }
                     }
                 }
             }
-
-            Add-Content -Path $logFile -Value "Profile $($user.Text) backed up successfully."
         }
+    }
 
-        if ($zipBackup) {
-            Remove-Item "C:\Temp" -Recurse -Force
-        }
+    [System.Windows.Forms.MessageBox]::Show("Sauvegarde terminée.")
+    $progressBar.Value = 100
+    Add-Content -Path $logFile -Value "Fin de la sauvegarde : $(Get-Date)"
+})
 
-        # Backup the list of installed applications
-        $apps = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*, HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* |
-                Select-Object DisplayName, InstallDate, Publisher, DisplayVersion |
-                Where-Object { $_.DisplayName -and $_.DisplayName -notmatch "^(Microsoft|Windows)" }
-        $appsFile = Join-Path -Path $backupPath -ChildPath "installed_apps.txt"
-        $apps | Format-Table -AutoSize | Out-String | Set-Content -Path $appsFile
-
-        Add-Content -Path $logFile -Value "Installed applications list backed up successfully."
-
-        # Backup local GPOs if selected
-        if ($checkboxGPO.Checked) {
-            try {
-                $gpoBackupPath = Join-Path -Path $backupPath -ChildPath "LocalGPOs"
-                if (-not (Test-Path -Path $gpoBackupPath)) {
-                    New-Item -ItemType Directory -Path $gpoBackupPath -Force
-                }
-                Copy-Item -Path "C:\Windows\System32\GroupPolicy" -Destination $gpoBackupPath -Recurse -Force
-                Add-Content -Path $logFile -Value "Local GPOs backed up successfully."
-            } catch {
-                $logLabel.Text = "Error backing up local GPOs: $_"
-                Add-Content -Path $logFile -Value "Error backing up local GPOs: $_"
-            }
-        }
-
-        # Backup registry keys if selected
-        if ($checkboxRegistry.Checked) {
-            try {
-                $registryBackupPath = Join-Path -Path $backupPath -ChildPath "RegistryBackup"
-                if (-not (Test-Path -Path $registryBackupPath)) {
-                    New-Item -ItemType Directory -Path $registryBackupPath -Force
-                }
-                reg export HKLM $registryBackupPath\HKLM.reg
-                reg export HKCU $registryBackupPath\HKCU.reg
-                Add-Content -Path $logFile -Value "Registry keys backed up successfully."
-            } catch {
-                $logLabel.Text = "Error backing up registry keys: $_"
-                Add-Content -Path $logFile -Value "Error backing up registry keys: $_"
-            }
-        }
-
-        # Backup printers and drivers if selected
-        if ($checkboxPrinters.Checked) {
-            try {
-                $printersBackupPath = Join-Path -Path $backupPath -ChildPath "PrintersBackup"
-                if (-not (Test-Path -Path $printersBackupPath)) {
-                    New-Item -ItemType Directory -Path $printersBackupPath -Force
-                }
-                $printers = Get-Printer | Select-Object Name, DriverName, PortName
-                $printersFile = Join-Path -Path $printersBackupPath -ChildPath "printers.txt"
-                $printers | Format-Table -AutoSize | Out-String | Set-Content -Path $printersFile
-                Add-Content -Path $logFile -Value "Printers list backed up successfully."
-
-                $drivers = Get-PrinterDriver | Select-Object Name, Manufacturer, Version
-                $driversFile = Join-Path -Path $printersBackupPath -ChildPath "drivers.txt"
-                $drivers | Format-Table -AutoSize | Out-String | Set-Content -Path $driversFile
-                Add-Content -Path $logFile -Value "Printer drivers backed up successfully."
-            } catch {
-                $logLabel.Text = "Error backing up printers and drivers: $_"
-                Add-Content -Path $logFile -Value "Error backing up printers and drivers: $_"
-            }
-        }
-
-        $logLabel.Text = "Backup completed."
-        $progressBar.Value = 100
-        Add-Content -Path $logFile -Value "Backup end: $(Get-Date)"
-    })
-
-    # Show the form
-    $form.Topmost = $true
-    $form.Add_Shown({$form.Activate()})
-    [void]$form.ShowDialog()
-}
-
-# Call the function to create the GUI
-Create-BackupGUI
+# Afficher le formulaire
+$form.Topmost = $true
+$form.Add_Shown({$form.Activate()})
+[void]$form.ShowDialog()
