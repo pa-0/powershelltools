@@ -10,59 +10,53 @@ function Start-ProcessAsAdmin {
     }
 }
 
-function Add-Control {
-    param (
-        [string]$type,
-        [string]$text,
-        [int]$x,
-        [int]$y,
-        [int]$width,
-        [int]$height,
-        [System.Windows.Forms.Control]$parent
-    )
-    $control = New-Object ("System.Windows.Forms." + $type)
-    $control.Text = $text
-    $control.Location = New-Object System.Drawing.Point($x, $y)
-    $control.Size = New-Object System.Drawing.Size($width, $height)
-    $parent.Controls.Add($control)
-    return $control
-}
-
-function Create-BackupRestoreGUI {
+function Create-BackupGUI {
     Start-ProcessAsAdmin
 
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = "User Profiles and Applications Backup and Restore"
-    $form.Size = New-Object System.Drawing.Size(700, 900)
+    $form.Text = "User Profiles and Applications Backup"
+    $form.Size = New-Object System.Drawing.Size(700, 850)
     $form.StartPosition = "CenterScreen"
-    $form.AutoSize = $true
-    $form.AutoSizeMode = "GrowAndShrink"
 
-    $tabControl = New-Object System.Windows.Forms.TabControl
-    $tabControl.Size = New-Object System.Drawing.Size(680, 850)
-    $tabControl.Location = New-Object System.Drawing.Point(10, 10)
-    $tabControl.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
+    # Label for backup path
+    $label = New-Object System.Windows.Forms.Label
+    $label.Text = "Backup path:"
+    $label.Location = New-Object System.Drawing.Point(10, 10)
+    $label.Size = New-Object System.Drawing.Size(150, 20)
+    $form.Controls.Add($label)
 
-    $backupTab = New-Object System.Windows.Forms.TabPage
-    $backupTab.Text = "Backup"
+    # Textbox for entering the backup path
+    $backupPathBox = New-Object System.Windows.Forms.TextBox
+    $backupPathBox.Size = New-Object System.Drawing.Size(450, 20)
+    $backupPathBox.Location = New-Object System.Drawing.Point(10, 35)
+    $backupPathBox.Text = "C:\Backup"
+    $form.Controls.Add($backupPathBox)
 
-    $restoreTab = New-Object System.Windows.Forms.TabPage
-    $restoreTab.Text = "Restore"
+    # Radio buttons for selecting backup type (directory or ZIP file)
+    $backupTypeGroup = New-Object System.Windows.Forms.GroupBox
+    $backupTypeGroup.Text = "Select backup type"
+    $backupTypeGroup.Location = New-Object System.Drawing.Point(10, 65)
+    $backupTypeGroup.Size = New-Object System.Drawing.Size(550, 60)
+    $form.Controls.Add($backupTypeGroup)
 
-    $tabControl.TabPages.Add($backupTab)
-    $tabControl.TabPages.Add($restoreTab)
-    $form.Controls.Add($tabControl)
-
-    # Backup Tab
-    $label = Add-Control -type "Label" -text "Backup path:" -x 10 -y 10 -width 150 -height 20 -parent $backupTab
-    $backupPathBox = Add-Control -type "TextBox" -text "C:\Backup" -x 10 -y 35 -width 450 -height 20 -parent $backupTab
-
-    $backupTypeGroup = Add-Control -type "GroupBox" -text "Select backup type" -x 10 -y 65 -width 550 -height 60 -parent $backupTab
-    $radioDir = Add-Control -type "RadioButton" -text "Directory" -x 10 -y 20 -width 100 -height 20 -parent $backupTypeGroup
+    $radioDir = New-Object System.Windows.Forms.RadioButton
+    $radioDir.Text = "Directory"
+    $radioDir.Location = New-Object System.Drawing.Point(10, 20)
+    $radioDir.Size = New-Object System.Drawing.Size(100, 20)
     $radioDir.Checked = $true
-    $radioZip = Add-Control -type "RadioButton" -text "ZIP File" -x 120 -y 20 -width 100 -height 20 -parent $backupTypeGroup
+    $backupTypeGroup.Controls.Add($radioDir)
 
-    $backupPathButton = Add-Control -type "Button" -text "Select Backup Path" -x 470 -y 32 -width 100 -height 25 -parent $backupTab
+    $radioZip = New-Object System.Windows.Forms.RadioButton
+    $radioZip.Text = "ZIP File"
+    $radioZip.Location = New-Object System.Drawing.Point(120, 20)
+    $radioZip.Size = New-Object System.Drawing.Size(100, 20)
+    $backupTypeGroup.Controls.Add($radioZip)
+
+    # Button to select backup path
+    $backupPathButton = New-Object System.Windows.Forms.Button
+    $backupPathButton.Text = "Select Backup Path"
+    $backupPathButton.Location = New-Object System.Drawing.Point(470, 32)
+    $backupPathButton.Size = New-Object System.Drawing.Size(100, 25)
     $backupPathButton.Add_Click({
         if ($radioDir.Checked) {
             $folderDialog = New-Object System.Windows.Forms.FolderBrowserDialog
@@ -77,38 +71,94 @@ function Create-BackupRestoreGUI {
             }
         }
     })
+    $form.Controls.Add($backupPathButton)
 
-    $labelUsers = Add-Control -type "Label" -text "Select profiles to backup:" -x 10 -y 135 -width 250 -height 20 -parent $backupTab
+    # Label for user profiles
+    $labelUsers = New-Object System.Windows.Forms.Label
+    $labelUsers.Text = "Select profiles to backup:"
+    $labelUsers.Location = New-Object System.Drawing.Point(10, 135)
+    $labelUsers.Size = New-Object System.Drawing.Size(250, 20)
+    $form.Controls.Add($labelUsers)
+
+    # Add checkboxes for user profiles found in C:\Users
     $checkboxes = @()
     $users = Get-ChildItem -Path "C:\Users" | Where-Object { $_.PSIsContainer }
     $yPosition = 160
     foreach ($user in $users) {
-        $checkbox = Add-Control -type "CheckBox" -text $user.Name -x 10 -y $yPosition -width 250 -height 20 -parent $backupTab
+        $checkbox = New-Object System.Windows.Forms.CheckBox
+        $checkbox.Text = $user.Name
+        $checkbox.Location = New-Object System.Drawing.Point(10, $yPosition)
+        $checkbox.Size = New-Object System.Drawing.Size(250, 20)
+        $form.Controls.Add($checkbox)
         $checkboxes += $checkbox
         $yPosition += 30
     }
 
-    $checkboxGPO = Add-Control -type "CheckBox" -text "Backup local GPOs" -x 10 -y $yPosition -width 250 -height 20 -parent $backupTab
-    $yPosition += 30
-    $checkboxRegistry = Add-Control -type "CheckBox" -text "Backup registry keys" -x 10 -y $yPosition -width 250 -height 20 -parent $backupTab
-    $yPosition += 30
-    $checkboxPrinters = Add-Control -type "CheckBox" -text "Backup printers and drivers" -x 10 -y $yPosition -width 250 -height 20 -parent $backupTab
-    $yPosition += 30
-    $checkboxDrivers = Add-Control -type "CheckBox" -text "Backup Windows drivers" -x 10 -y $yPosition -width 250 -height 20 -parent $backupTab
-    $yPosition += 30
-    $checkboxPSTFiles = Add-Control -type "CheckBox" -text "Backup Office PST files" -x 10 -y $yPosition -width 250 -height 20 -parent $backupTab
-    $yPosition += 30
-    $checkboxSerialNumbers = Add-Control -type "CheckBox" -text "Backup serial numbers" -x 10 -y $yPosition -width 250 -height 20 -parent $backupTab
+    # Add checkboxes for additional backup options
+    $checkboxGPO = New-Object System.Windows.Forms.CheckBox
+    $checkboxGPO.Text = "Backup local GPOs"
+    $checkboxGPO.Location = New-Object System.Drawing.Point(10, $yPosition)
+    $checkboxGPO.Size = New-Object System.Drawing.Size(250, 20)
+    $form.Controls.Add($checkboxGPO)
     $yPosition += 30
 
-    $labelFileTypes = Add-Control -type "Label" -text "Select file types to backup:" -x 300 -y 135 -width 250 -height 20 -parent $backupTab
-    $checkboxFullProfile = Add-Control -type "CheckBox" -text "Backup entire profile" -x 300 -y 160 -width 250 -height 20 -parent $backupTab
+    $checkboxRegistry = New-Object System.Windows.Forms.CheckBox
+    $checkboxRegistry.Text = "Backup registry keys"
+    $checkboxRegistry.Location = New-Object System.Drawing.Point(10, $yPosition)
+    $checkboxRegistry.Size = New-Object System.Drawing.Size(250, 20)
+    $form.Controls.Add($checkboxRegistry)
+    $yPosition += 30
 
-    $fileTypes = @('Documents (*.doc, *.docx, *.pdf, *.txt, *.rtf, *.odt, *.xlsx, *.xls, *.ppt, *.pptx, *.csv, *.ods, *.odp)', 'Images (*.jpg, *.jpeg, *.png, *.gif, *.bmp, *.tiff, *.tif, *.svg, *.ico, *.webp, *.heic)', 'Music (*.mp3, *.wav, *.flac, *.aac, *.ogg, *.wma, *.m4a, *.alac)', 'Videos (*.mp4, *.avi, *.mkv, *.mov, *.wmv, *.flv, *.mpeg, *.mpg, *.m4v, *.webm)', 'Archives (*.zip, *.rar, *.7z, *.tar, *.gz, *.bz2, *.xz, *.iso)', 'Scripts (*.ps1, *.sh, *.py, *.js, *.rb, *.bat, *.cmd, *.php, *.pl, *.vbs, *.java)', 'Executables (*.exe, *.msi, *.bat, *.cmd)', 'Database (*.sql, *.db, *.sqlite, *.accdb, *.mdb)', 'Ebooks (*.epub, *.mobi, *.azw, *.azw3, *.pdf)', 'CAD Files (*.dwg, *.dxf, *.dwt, *.dws)', 'Font Files (*.ttf, *.otf, *.woff, *.woff2)', 'Configuration Files (*.cfg, *.conf, *.ini, *.json, *.xml, *.yaml, *.yml)', 'Log Files (*.log, *.txt)')
+    $checkboxPrinters = New-Object System.Windows.Forms.CheckBox
+    $checkboxPrinters.Text = "Backup printers and drivers"
+    $checkboxPrinters.Location = New-Object System.Drawing.Point(10, $yPosition)
+    $checkboxPrinters.Size = New-Object System.Drawing.Size(250, 20)
+    $form.Controls.Add($checkboxPrinters)
+    $yPosition += 30
+
+    $checkboxDrivers = New-Object System.Windows.Forms.CheckBox
+    $checkboxDrivers.Text = "Backup Windows drivers"
+    $checkboxDrivers.Location = New-Object System.Drawing.Point(10, $yPosition)
+    $checkboxDrivers.Size = New-Object System.Drawing.Size(250, 20)
+    $form.Controls.Add($checkboxDrivers)
+    $yPosition += 30
+
+    $checkboxPSTFiles = New-Object System.Windows.Forms.CheckBox
+    $checkboxPSTFiles.Text = "Backup Office PST files"
+    $checkboxPSTFiles.Location = New-Object System.Drawing.Point(10, $yPosition)
+    $checkboxPSTFiles.Size = New-Object System.Drawing.Size(250, 20)
+    $form.Controls.Add($checkboxPSTFiles)
+    $yPosition += 30
+
+    $checkboxSerialNumbers = New-Object System.Windows.Forms.CheckBox
+    $checkboxSerialNumbers.Text = "Backup serial numbers"
+    $checkboxSerialNumbers.Location = New-Object System.Drawing.Point(10, $yPosition)
+    $checkboxSerialNumbers.Size = New-Object System.Drawing.Size(250, 20)
+    $form.Controls.Add($checkboxSerialNumbers)
+    $yPosition += 30
+
+    # Add checkboxes for file types to backup
+    $labelFileTypes = New-Object System.Windows.Forms.Label
+    $labelFileTypes.Text = "Select file types to backup:"
+    $labelFileTypes.Location = New-Object System.Drawing.Point(300, 135)
+    $labelFileTypes.Size = New-Object System.Drawing.Size(250, 20)
+    $form.Controls.Add($labelFileTypes)
+
+    $checkboxFullProfile = New-Object System.Windows.Forms.CheckBox
+    $checkboxFullProfile.Text = "Backup entire profile"
+    $checkboxFullProfile.Location = New-Object System.Drawing.Point(300, 160)
+    $checkboxFullProfile.Size = New-Object System.Drawing.Size(250, 20)
+    $form.Controls.Add($checkboxFullProfile)
+
+    $fileTypes = @('Documents (*.doc, *.docx, *.pdf)', 'Images (*.jpg, *.jpeg, *.png, *.gif)', 'Music (*.mp3, *.wav)', 'Videos (*.mp4, *.avi, *.mkv)', 'Archives (*.zip, *.rar, *.7z)', 'Scripts (*.ps1, *.sh, *.py, *.js, *.rb)')
     $fileTypeCheckboxes = @()
     $yFileTypePosition = 190
     foreach ($fileType in $fileTypes) {
-        $fileTypeCheckbox = Add-Control -type "CheckBox" -text $fileType -x 300 -y $yFileTypePosition -width 250 -height 20 -parent $backupTab
+        $fileTypeCheckbox = New-Object System.Windows.Forms.CheckBox
+        $fileTypeCheckbox.Text = $fileType
+        $fileTypeCheckbox.Location = New-Object System.Drawing.Point(300, $yFileTypePosition)
+        $fileTypeCheckbox.Size = New-Object System.Drawing.Size(250, 20)
+        $form.Controls.Add($fileTypeCheckbox)
         $fileTypeCheckboxes += $fileTypeCheckbox
         $yFileTypePosition += 30
     }
@@ -125,23 +175,35 @@ function Create-BackupRestoreGUI {
         }
     })
 
-    # Add a button to start the backup
-    $okButton = Add-Control -type "Button" -text "Start Backup" -x 10 -y 700 -width 150 -height 30 -parent $backupTab
-    $okButton.Anchor = [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left
-
-    # Add a button to cancel the backup
-    $cancelButton = Add-Control -type "Button" -text "Cancel" -x 170 -y 700 -width 150 -height 30 -parent $backupTab
-    $cancelButton.Anchor = [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left
-
     # Add a progress bar
-    $progressBar = Add-Control -type "ProgressBar" -text "" -x 10 -y 750 -width 650 -height 20 -parent $backupTab
+    $progressBar = New-Object System.Windows.Forms.ProgressBar
     $progressBar.Minimum = 0
     $progressBar.Maximum = 100
     $progressBar.Value = 0
+    $progressBar.Size = New-Object System.Drawing.Size(650, 20)
+    $progressBar.Location = New-Object System.Drawing.Point(10, 600)
+    $form.Controls.Add($progressBar)
 
     # Add a label to display logs and errors
-    $logLabel = Add-Control -type "Label" -text "" -x 10 -y 780 -width 650 -height 100 -parent $backupTab
+    $logLabel = New-Object System.Windows.Forms.Label
+    $logLabel.Size = New-Object System.Drawing.Size(650, 100)
+    $logLabel.Location = New-Object System.Drawing.Point(10, 630)
     $logLabel.BorderStyle = [System.Windows.Forms.BorderStyle]::Fixed3D
+    $form.Controls.Add($logLabel)
+
+    # Add a button to start the backup
+    $okButton = New-Object System.Windows.Forms.Button
+    $okButton.Text = "Start Backup"
+    $okButton.Location = New-Object System.Drawing.Point(10, 750)
+    $okButton.Size = New-Object System.Drawing.Size(150, 30)
+    $form.Controls.Add($okButton)
+
+    # Add a button to cancel the backup
+    $cancelButton = New-Object System.Windows.Forms.Button
+    $cancelButton.Text = "Cancel"
+    $cancelButton.Location = New-Object System.Drawing.Point(170, 750)
+    $cancelButton.Size = New-Object System.Drawing.Size(150, 30)
+    $form.Controls.Add($cancelButton)
 
     # Variable to handle cancellation
     $cancelRequested = $false
@@ -191,19 +253,12 @@ function Create-BackupRestoreGUI {
             } else {
                 foreach ($fileType in $selectedFileTypes) {
                     $fileTypePatterns = switch ($fileType.Text) {
-                        'Documents (*.doc, *.docx, *.pdf, *.txt, *.rtf, *.odt, *.xlsx, *.xls, *.ppt, *.pptx, *.csv, *.ods, *.odp)' { '*.doc', '*.docx', '*.pdf', '*.txt', '*.rtf', '*.odt', '*.xlsx', '*.xls', '*.ppt', '*.pptx', '*.csv', '*.ods', '*.odp' }
-                        'Images (*.jpg, *.jpeg, *.png, *.gif, *.bmp, *.tiff, *.tif, *.svg, *.ico, *.webp, *.heic)' { '*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp', '*.tiff', '*.tif', '*.svg', '*.ico', '*.webp', '*.heic' }
-                        'Music (*.mp3, *.wav, *.flac, *.aac, *.ogg, *.wma, *.m4a, *.alac)' { '*.mp3', '*.wav', '*.flac', '*.aac', '*.ogg', '*.wma', '*.m4a', '*.alac' }
-                        'Videos (*.mp4, *.avi, *.mkv, *.mov, *.wmv, *.flv, *.mpeg, *.mpg, *.m4v, *.webm)' { '*.mp4', '*.avi', '*.mkv', '*.mov', '*.wmv', '*.flv', '*.mpeg', '*.mpg', '*.m4v', '*.webm' }
-                        'Archives (*.zip, *.rar, *.7z, *.tar, *.gz, *.bz2, *.xz, *.iso)' { '*.zip', '*.rar', '*.7z', '*.tar', '*.gz', '*.bz2', '*.xz', '*.iso' }
-                        'Scripts (*.ps1, *.sh, *.py, *.js, *.rb, *.bat, *.cmd, *.php, *.pl, *.vbs, *.java)' { '*.ps1', '*.sh', '*.py', '*.js', '*.rb', '*.bat', '*.cmd', '*.php', '*.pl', '*.vbs', '*.java' }
-                        'Executables (*.exe, *.msi, *.bat, *.cmd)' { '*.exe', '*.msi', '*.bat', '*.cmd' }
-                        'Database (*.sql, *.db, *.sqlite, *.accdb, *.mdb)' { '*.sql', '*.db', '*.sqlite', '*.accdb', '*.mdb' }
-                        'Ebooks (*.epub, *.mobi, *.azw, *.azw3, *.pdf)' { '*.epub', '*.mobi', '*.azw', '*.azw3', '*.pdf' }
-                        'CAD Files (*.dwg, *.dxf, *.dwt, *.dws)' { '*.dwg', '*.dxf', '*.dwt', '*.dws' }
-                        'Font Files (*.ttf, *.otf, *.woff, *.woff2)' { '*.ttf', '*.otf', '*.woff', '*.woff2' }
-                        'Configuration Files (*.cfg, *.conf, *.ini, *.json, *.xml, *.yaml, *.yml)' { '*.cfg', '*.conf', '*.ini', '*.json', '*.xml', '*.yaml', '*.yml' }
-                        'Log Files (*.log, *.txt)' { '*.log', '*.txt' }
+                        'Documents (*.doc, *.docx, *.pdf)' { '*.doc', '*.docx', '*.pdf' }
+                        'Images (*.jpg, *.jpeg, *.png, *.gif)' { '*.jpg', '*.jpeg', '*.png', '*.gif' }
+                        'Music (*.mp3, *.wav)' { '*.mp3', '*.wav' }
+                        'Videos (*.mp4, *.avi, *.mkv)' { '*.mp4', '*.avi', '*.mkv' }
+                        'Archives (*.zip, *.rar, *.7z)' { '*.zip', '*.rar', '*.7z' }
+                        'Scripts (*.ps1, *.sh, *.py, *.js, *.rb)' { '*.ps1', '*.sh', '*.py', '*.js', '*.rb' }
                     }
                     foreach ($pattern in $fileTypePatterns) {
                         $totalFiles += (Get-ChildItem -Path $sourcePath -Recurse -Filter $pattern -ErrorAction SilentlyContinue).Count
@@ -263,19 +318,12 @@ function Create-BackupRestoreGUI {
             } else {
                 foreach ($fileType in $selectedFileTypes) {
                     $fileTypePatterns = switch ($fileType.Text) {
-                        'Documents (*.doc, *.docx, *.pdf, *.txt, *.rtf, *.odt, *.xlsx, *.xls, *.ppt, *.pptx, *.csv, *.ods, *.odp)' { '*.doc', '*.docx', '*.pdf', '*.txt', '*.rtf', '*.odt', '*.xlsx', '*.xls', '*.ppt', '*.pptx', '*.csv', '*.ods', '*.odp' }
-                        'Images (*.jpg, *.jpeg, *.png, *.gif, *.bmp, *.tiff, *.tif, *.svg, *.ico, *.webp, *.heic)' { '*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp', '*.tiff', '*.tif', '*.svg', '*.ico', '*.webp', '*.heic' }
-                        'Music (*.mp3, *.wav, *.flac, *.aac, *.ogg, *.wma, *.m4a, *.alac)' { '*.mp3', '*.wav', '*.flac', '*.aac', '*.ogg', '*.wma', '*.m4a', '*.alac' }
-                        'Videos (*.mp4, *.avi, *.mkv, *.mov, *.wmv, *.flv, *.mpeg, *.mpg, *.m4v, *.webm)' { '*.mp4', '*.avi', '*.mkv', '*.mov', '*.wmv', '*.flv', '*.mpeg', '*.mpg', '*.m4v', '*.webm' }
-                        'Archives (*.zip, *.rar, *.7z, *.tar, *.gz, *.bz2, *.xz, *.iso)' { '*.zip', '*.rar', '*.7z', '*.tar', '*.gz', '*.bz2', '*.xz', '*.iso' }
-                        'Scripts (*.ps1, *.sh, *.py, *.js, *.rb, *.bat, *.cmd, *.php, *.pl, *.vbs, *.java)' { '*.ps1', '*.sh', '*.py', '*.js', '*.rb', '*.bat', '*.cmd', '*.php', '*.pl', '*.vbs', '*.java' }
-                        'Executables (*.exe, *.msi, *.bat, *.cmd)' { '*.exe', '*.msi', '*.bat', '*.cmd' }
-                        'Database (*.sql, *.db, *.sqlite, *.accdb, *.mdb)' { '*.sql', '*.db', '*.sqlite', '*.accdb', '*.mdb' }
-                        'Ebooks (*.epub, *.mobi, *.azw, *.azw3, *.pdf)' { '*.epub', '*.mobi', '*.azw', '*.azw3', '*.pdf' }
-                        'CAD Files (*.dwg, *.dxf, *.dwt, *.dws)' { '*.dwg', '*.dxf', '*.dwt', '*.dws' }
-                        'Font Files (*.ttf, *.otf, *.woff, *.woff2)' { '*.ttf', '*.otf', '*.woff', '*.woff2' }
-                        'Configuration Files (*.cfg, *.conf, *.ini, *.json, *.xml, *.yaml, *.yml)' { '*.cfg', '*.conf', '*.ini', '*.json', '*.xml', '*.yaml', '*.yml' }
-                        'Log Files (*.log, *.txt)' { '*.log', '*.txt' }
+                        'Documents (*.doc, *.docx, *.pdf)' { '*.doc', '*.docx', '*.pdf' }
+                        'Images (*.jpg, *.jpeg, *.png, *.gif)' { '*.jpg', '*.jpeg', '*.png', '*.gif' }
+                        'Music (*.mp3, *.wav)' { '*.mp3', '*.wav' }
+                        'Videos (*.mp4, *.avi, *.mkv)' { '*.mp4', '*.avi', '*.mkv' }
+                        'Archives (*.zip, *.rar, *.7z)' { '*.zip', '*.rar', '*.7z' }
+                        'Scripts (*.ps1, *.sh, *.py, *.js, *.rb)' { '*.ps1', '*.sh', '*.py', '*.js', '*.rb' }
                     }
 
                     foreach ($pattern in $fileTypePatterns) {
@@ -444,114 +492,6 @@ function Create-BackupRestoreGUI {
         Add-Content -Path $logFile -Value "Backup end: $(Get-Date)"
     })
 
-    # Restore Tab
-    $labelRestorePath = Add-Control -type "Label" -text "Restore path:" -x 10 -y 10 -width 150 -height 20 -parent $restoreTab
-    $restorePathBox = Add-Control -type "TextBox" -text "C:\Backup" -x 10 -y 35 -width 450 -height 20 -parent $restoreTab
-
-    $restorePathButton = Add-Control -type "Button" -text "Select Restore Path" -x 470 -y 32 -width 100 -height 25 -parent $restoreTab
-    $restorePathButton.Add_Click({
-        $folderDialog = New-Object System.Windows.Forms.FolderBrowserDialog
-        if ($folderDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            $restorePathBox.Text = $folderDialog.SelectedPath
-        }
-    })
-
-    $labelRestoreUsers = Add-Control -type "Label" -text "Select profiles to restore:" -x 10 -y 65 -width 250 -height 20 -parent $restoreTab
-    $checkboxesRestore = @()
-    $restoreUsers = Get-ChildItem -Path $restorePathBox.Text | Where-Object { $_.PSIsContainer }
-    $yRestorePosition = 90
-    foreach ($restoreUser in $restoreUsers) {
-        $checkbox = Add-Control -type "CheckBox" -text $restoreUser.Name -x 10 -y $yRestorePosition -width 250 -height 20 -parent $restoreTab
-        $checkboxesRestore += $checkbox
-        $yRestorePosition += 30
-    }
-
-    $restoreButton = Add-Control -type "Button" -text "Start Restore" -x 10 -y 700 -width 150 -height 30 -parent $restoreTab
-    $restoreButton.Anchor = [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left
-
-    $restoreCancelButton = Add-Control -type "Button" -text "Cancel" -x 170 -y 700 -width 150 -height 30 -parent $restoreTab
-    $restoreCancelButton.Anchor = [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left
-
-    $restoreProgressBar = Add-Control -type "ProgressBar" -text "" -x 10 -y 750 -width 650 -height 20 -parent $restoreTab
-    $restoreProgressBar.Minimum = 0
-    $restoreProgressBar.Maximum = 100
-    $restoreProgressBar.Value = 0
-
-    $restoreLogLabel = Add-Control -type "Label" -text "" -x 10 -y 780 -width 650 -height 100 -parent $restoreTab
-    $restoreLogLabel.BorderStyle = [System.Windows.Forms.BorderStyle]::Fixed3D
-
-    $restoreCancelRequested = $false
-
-    $restoreCancelButton.Add_Click({
-        $restoreCancelRequested = $true
-        Write-Host "Restore cancellation requested."
-    })
-
-    $restoreButton.Add_Click({
-        $selectedRestoreUsers = $checkboxesRestore | Where-Object { $_.Checked }
-        if (-not $selectedRestoreUsers) {
-            $restoreLogLabel.Text = "Please select at least one profile to restore."
-            return
-        }
-
-        $restorePath = $restorePathBox.Text
-        $restoreTotalFiles = 0
-        $restoreCopiedFiles = 0
-
-        foreach ($restoreUser in $selectedRestoreUsers) {
-            $sourceRestorePath = Join-Path -Path $restorePath -ChildPath $restoreUser.Text
-            $restoreTotalFiles += (Get-ChildItem -Path $sourceRestorePath -Recurse -ErrorAction SilentlyContinue).Count
-        }
-
-        if ($restoreTotalFiles -eq 0) {
-            $restoreLogLabel.Text = "No files found for the selected profiles."
-            return
-        }
-
-        $restoreLogFile = Join-Path -Path $restorePath -ChildPath "restore_log.txt"
-        Add-Content -Path $restoreLogFile -Value "Restore start: $(Get-Date)"
-        $restoreLogLabel.Text = "Restore started..."
-
-        foreach ($restoreUser in $selectedRestoreUsers) {
-            if ($restoreCancelRequested) {
-                Add-Content -Path $restoreLogFile -Value "Restore cancelled by user: $(Get-Date)"
-                $restoreLogLabel.Text = "Restore cancelled."
-                return
-            }
-
-            $sourceRestorePath = Join-Path -Path $restorePath -ChildPath $restoreUser.Text
-            Get-ChildItem -Path $sourceRestorePath -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
-                if ($restoreCancelRequested) {
-                    Add-Content -Path $restoreLogFile -Value "Restore cancelled by user: $(Get-Date)"
-                    $restoreLogLabel.Text = "Restore cancelled."
-                    return
-                }
-                try {
-                    $destinationRestoreFilePath = $_.FullName.Replace($sourceRestorePath, "C:\Users")
-                    $destinationRestoreDir = Split-Path -Path $destinationRestoreFilePath -Parent
-                    if (-not (Test-Path -Path $destinationRestoreDir)) {
-                        New-Item -ItemType Directory -Path $destinationRestoreDir -Force
-                    }
-                    Copy-Item -Path $_.FullName -Destination $destinationRestoreFilePath -Force -ErrorAction Stop
-                    $restoreCopiedFiles++
-                    $restoreProgressValue = [math]::Round((($restoreCopiedFiles / $restoreTotalFiles) * 100), 0)
-                    if ($restoreProgressValue -le $restoreProgressBar.Maximum) {
-                        $restoreProgressBar.Value = $restoreProgressValue
-                    }
-                } catch {
-                    $restoreLogLabel.Text = "Error copying file: $_.FullName"
-                    Add-Content -Path $restoreLogFile -Value "Error copying file: $_.FullName - $_"
-                }
-            }
-
-            Add-Content -Path $restoreLogFile -Value "Profile $($restoreUser.Text) restored successfully."
-        }
-
-        $restoreLogLabel.Text = "Restore completed."
-        $restoreProgressBar.Value = 100
-        Add-Content -Path $restoreLogFile -Value "Restore end: $(Get-Date)"
-    })
-
     # Show the form
     $form.Topmost = $true
     $form.Add_Shown({$form.Activate()})
@@ -559,4 +499,4 @@ function Create-BackupRestoreGUI {
 }
 
 # Call the function to create the GUI
-Create-BackupRestoreGUI
+Create-BackupGUI
