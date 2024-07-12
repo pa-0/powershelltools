@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulaire de Diagnostic Informatique</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #007bff;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input[type="text"],
+        .form-group input[type="tel"],
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+        .form-group textarea {
+            min-height: 100px;
+        }
+        .form-group input[type="radio"],
+        .form-group input[type="checkbox"] {
+            margin-right: 5px;
+        }
+        .form-group .radio-label,
+        .form-group .checkbox-label {
+            margin-right: 15px;
+        }
+        .form-group .required::after {
+            content: '*';
+            color: red;
+        }
+        .submit-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .submit-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Formulaire de Diagnostic Informatique</h1>
+        <form id="diagnostic-form">
+            <div class="form-group">
+                <label for="nom-client" class="required">Nom du Client :</label>
+                <input type="text" id="nom-client" name="nom-client" required>
+            </div>
+            <div class="form-group">
+                <label for="telephone" class="required">Téléphone :</label>
+                <input type="tel" id="telephone" name="telephone" required>
+            </div>
+            <div class="form-group">
+                <label for="type-appareil" class="required">Type d'Appareil :</label>
+                <select id="type-appareil" name="type-appareil" required>
+                    <option value="">Sélectionner...</option>
+                    <option value="Imprimante">Imprimante</option>
+                    <option value="Laptop">Laptop</option>
+                    <option value="Ordinateur de Bureau">Ordinateur de Bureau</option>
+                    <option value="Cellulaire">Cellulaire</option>
+                    <option value="Tablette">Tablette</option>
+                    <option value="Autre">Autre</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="probleme">Description du Problème :</label>
+                <textarea id="probleme" name="probleme" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="code-erreur">Code d'Erreur (le cas échéant) :</label>
+                <input type="text" id="code-erreur" name="code-erreur">
+            </div>
+            <div class="form-group">
+                <label>Adaptateur de Courant :</label><br>
+                <input type="radio" id="adapteur-oui" name="adapteur-courant" value="Oui" required>
+                <label class="radio-label" for="adapteur-oui">Oui</label>
+                <input type="radio" id="adapteur-non" name="adapteur-courant" value="Non" required>
+                <label class="radio-label" for="adapteur-non">Non</label>
+            </div>
+            <div class="form-group">
+                <label for="pieces-remplacees">Pièces Déjà Remplacées :</label>
+                <input type="text" id="pieces-remplacees" name="pieces-remplacees">
+            </div>
+            <div class="form-group">
+                <label for="historique-probleme">Historique du Problème :</label>
+                <textarea id="historique-probleme" name="historique-probleme" rows="4"></textarea>
+                <span class="notes">Inclure les symptômes observés avant d'amener l'appareil.</span>
+            </div>
+            <div class="form-group">
+                <label>Utilisation Récemment Modifiée :</label><br>
+                <input type="checkbox" id="utilisation-modifiee" name="utilisation-modifiee[]" value="Mise à Jour du Système d'Exploitation">
+                <label class="checkbox-label" for="utilisation-modifiee">Mise à Jour du Système d'Exploitation</label>
+                <input type="checkbox" id="utilisation-modifiee2" name="utilisation-modifiee[]" value="Installation de Nouveaux Programmes">
+                <label class="checkbox-label" for="utilisation-modifiee2">Installation de Nouveaux Programmes</label>
+            </div>
+            <div class="form-group">
+                <label>Sauvegardes Disponibles :</label><br>
+                <input type="radio" id="sauvegardes-oui" name="sauvegardes" value="Oui">
+                <label class="radio-label" for="sauvegardes-oui">Oui</label>
+                <input type="radio" id="sauvegardes-non" name="sauvegardes" value="Non">
+                <label class="radio-label" for="sauvegardes-non">Non</label>
+            </div>
+            <div class="form-group">
+                <label for="antivirus">Antivirus Utilisé :</label>
+                <input type="text" id="antivirus" name="antivirus">
+            </div>
+            <div class="form-group">
+                <label for="connexion-reseau">Détails de Connexion Réseau :</label>
+                <textarea id="connexion-reseau" name="connexion-reseau" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Problèmes de Performances :</label><br>
+                <input type="checkbox" id="performances-ralentissements" name="performances[]" value="Ralentissements">
+                <label class="checkbox-label" for="performances-ralentissements">Ralentissements</label>
+                <input type="checkbox" id="performances-gels" name="performances[]" value="Écrans Gelés">
+                <label class="checkbox-label" for="performances-gels">Écrans Gelés</label>
+                <input type="checkbox" id="performances-redemarrages" name="performances[]" value="Redémarrages Inattendus">
+                <label class="checkbox-label" for="performances-redemarrages">Redémarrages Inattendus</label>
+            </div>
+            <div class="form-group">
+                <label for="notes-additionnelles">Notes Additionnelles :</label>
+                <textarea id="notes-additionnelles" name="notes-additionnelles" rows="4"></textarea>
+            </div>
+            <button type="submit" class="submit-btn">Soumettre</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('diagnostic-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+
+            const date = new Date().toLocaleString();
+            const filename = `rapport_diagnostic_${new Date().toISOString().replace(/[:\-T]/g, '').split('.')[0]}.html`;
+
+            let reportHtml = `
+                <!DOCTYPE html>
+                <html lang="fr">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Rapport de Diagnostic Informatique</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            background-color: #f4f4f9;
+                            margin: 0;
+                            padding: 20px;
+                            color: #333;
+                        }
+                        .container {
+                            max-width: 800px;
+                            margin: 0 auto;
+                            background-color: #fff;
+                            padding: 20pxborder-radius: 8px;
+                            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                        }
+                        h1, h2, h3, h4 {
+                            color: #007bff;
+                        }
+                        h2, h3 {
+                            border-bottom: 2px solid #007bff;
+                            padding-bottom: 5px;
+                        }
+                        pre {
+                            background-color: #f4f4f9;
+                            padding: 10px;
+                            border-left: 4px solid #007bff;
+                            overflow-x: auto;
+                        }
+                        .report-item {
+                            margin-bottom: 20px;
+                        }
+                        .report-item label {
+                            font-weight: bold;
+                        }
+                        .report-item span {
+                            display: block;
+                            background-color: #f4f4f9;
+                            padding: 10px;
+                            border-radius: 4px;
+                            border: 1px solid #ccc;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>Rapport de Diagnostic Informatique</h1>
+                        <p>Généré le : ${date}</p>
+            `;
+
+            formData.forEach((value, key) => {
+                if (value) {
+                    reportHtml += `
+                        <div class="report-item">
+                            <label>${key.replace(/-/g, ' ')}:</label>
+                            <span>${value}</span>
+                        </div>
+                    `;
+                }
+            });
+
+            reportHtml += `
+                    </div>
+                </body>
+                </html>
+            `;
+
+            const blob = new Blob([reportHtml], { type: 'text/html' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.target = '_blank';
+            link.click();
+        });
+
+        function getCheckboxValues(name) {
+            const checkboxes = document.querySelectorAll(`input[name="${name}"]:checked`);
+            const values = [];
+            checkboxes.forEach(checkbox => {
+                values.push(checkbox.value);
+            });
+            return values;
+        }
+    </script>
+</body>
+</html>
