@@ -154,6 +154,24 @@
                 <label class="radio-label" for="adapteur-non">Non</label>
             </div>
             <div class="form-group">
+                <label for="duree-probleme" class="required">Depuis Quand Durée le Problème Principal :</label>
+                <input type="text" id="duree-probleme" name="duree-probleme" required>
+            </div>
+            <div class="form-group">
+                <label for="fonctionnel-moment" class="required">L'appareil est-il Fonctionnel Actuellement ou l'avez-vous Vu Allumé ?</label><br>
+                <input type="radio" id="fonctionnel-oui" name="fonctionnel-moment" value="Oui" required>
+                <label class="radio-label" for="fonctionnel-oui">Oui</label>
+                <input type="radio" id="fonctionnel-non" name="fonctionnel-moment" value="Non" required>
+                <label class="radio-label" for="fonctionnel-non">Non</label>
+            </div>
+            <div class="form-group">
+                <label for="virus-infection">Le problème est-il lié à une infection par un virus ou un malware ?</label><br>
+                <input type="radio" id="virus-oui" name="virus-infection" value="Oui">
+                <label class="radio-label" for="virus-oui">Oui</label>
+                <input type="radio" id="virus-non" name="virus-infection" value="Non">
+                <label class="radio-label" for="virus-non">Non</label>
+            </div>
+            <div class="form-group">
                 <label>Utilisation Récemment Modifiée :</label><br>
                 <input type="checkbox" id="utilisation-modifiee" name="utilisation-modifiee[]" value="Mise à Jour du Système d'Exploitation">
                 <label class="checkbox-label" for="utilisation-modifiee">Mise à Jour du Système d'Exploitation</label>
@@ -196,7 +214,6 @@
                 <textarea id="historique-probleme" name="historique-probleme" rows="4"></textarea>
                 <span class="notes">Inclure les symptômes observés avant d'amener l'appareil.</span>
             </div>
-            
             <div class="form-group">
                 <label>Sauvegardes Disponibles :</label><br>
                 <input type="radio" id="sauvegardes-oui" name="sauvegardes" value="Oui">
@@ -229,6 +246,14 @@
                 <label for="notes-additionnelles">Notes Additionnelles :</label>
                 <textarea id="notes-additionnelles" name="notes-additionnelles" rows="4"></textarea>
             </div>
+            <div class="form-group signature-container">
+                <label for="signature-client">Signature du Client :</label>
+                <input type="text" id="signature-client" name="signature-client">
+                <span>Date : <input type="text" id="date-signature" name="date-signature" readonly></span>
+            </div>
+            <div class="form-group">
+                <p>Nous ne sommes pas responsables des problèmes qui peuvent survenir suite à la réparation.</p>
+            </div>
             <button type="submit" class="submit-btn">Soumettre</button>
         </form>
     </div>
@@ -238,152 +263,155 @@
 
         diagnosticForm.addEventListener('submit', function(event) {
             event.preventDefault();
-
-            // Validation du formulaire
-            if (!validateForm(diagnosticForm)) {
-                return;
-            }
-
-            // Récupération des valeurs du formulaire
-            const nomClient = document.getElementById('nom-client').value;
-            const telephone = document.getElementById('telephone').value;
-            const typeAppareil = document.getElementById('type-appareil').value;
-            const marqueAppareil = document.getElementById('marque-appareil').value;
-            const probleme = document.getElementById('probleme').value;
-            const codeErreur = document.getElementById('code-erreur').value;
-            const systemeExploitation = document.getElementById('système-exploitation').value;
-            const adapteurCourant = document.querySelector('input[name="adapteur-courant"]:checked').value;
-            const piecesRemplacees = document.getElementById('pieces-remplacees').value;
-            const historiqueProbleme = document.getElementById('historique-probleme').value;
-            const utilisationModifiee = getCheckboxValues('utilisation-modifiee');
-            const sauvegardes = document.querySelector('input[name="sauvegardes"]:checked') ? document.querySelector('input[name="sauvegardes"]:checked').value : '';
-            const antivirus = document.getElementById('antivirus').value;
-            const connexionReseau = document.getElementById('connexion-reseau').value;
-            const problemesPerformances = getCheckboxValues('performances');
-            const notesAdditionnelles = document.getElementById('notes-additionnelles').value;
-
-            // Génération du rapport
-            const currentDate = new Date().toLocaleDateString('fr-CA');
-            const reportContent = `
-                <div class="report-container">
-                    <h2>Rapport de Diagnostic</h2>
-                    <div class="report-item">
-                        <label>Nom du Client :</label>
-                        <span>${nomClient}</span>
-                    </div>
-                    <div class="report-item">
-                        <label>Téléphone :</label>
-                        <span>${telephone}</span>
-                    </div>
-                    <div class="report-item">
-                        <label>Type d'Appareil :</label>
-                        <span>${typeAppareil}</span>
-                    </div>
-                    <div class="report-item">
-                        <label>Marque de l'Appareil :</label>
-                        <span>${marqueAppareil}</span>
-                    </div>
-                    <div class="report-item">
-                        <label>Description du Problème :</label>
-                        <textarea readonly>${probleme}</textarea>
-                    </div>
-                    <div class="report-item">
-                        <label>Code d'Erreur :</label>
-                        <span>${codeErreur}</span>
-                    </div>
-                    <div class="report-item">
-                        <label>Système d'Exploitation :</label>
-                        <span>${systemeExploitation}</span>
-                    </div>
-                    <div class="report-item">
-                        <label>Adaptateur de Courant :</label>
-                        <span>${adapteurCourant}</span>
-                    </div>
-                    <div class="report-item">
-                        <label>Pièces Déjà Remplacées :</label>
-                        <span>${piecesRemplacees}</span>
-                    </div>
-                    <div class="report-item">
-                        <label>Historique du Problème :</label>
-                        <textarea readonly>${historiqueProbleme}</textarea>
-                    </div>
-                    <div class="report-item">
-                        <label>Utilisation Récemment Modifiée :</label>
-                        <span>${utilisationModifiee.join(', ')}</span>
-                    </div>
-                    <div class="report-item">
-                        <label>Sauvegardes Disponibles :</label>
-                        <span>${sauvegardes}</span>
-                    </div>
-                    <div class="report-item">
-                        <label>Antivirus Utilisé :</label>
-                        <span>${antivirus}</span>
-                    </div>
-                    <div class="report-item">
-                        <label>Détails de Connexion Réseau :</label>
-                        <textarea readonly>${connexionReseau}</textarea>
-                    </div>
-                    <div class="report-item">
-                        <label>Problèmes de Performances :</label>
-                        <span>${problemesPerformances.join(', ')}</span>
-                    </div>
-                    <div class="report-item">
-                        <label>Notes Additionnelles :</label>
-                        <textarea readonly>${notesAdditionnelles}</textarea>
-                    </div>
-                    <div class="report-item">
-                        <label>Date de Génération :</label>
-                        <span>${currentDate}</span>
-                    </div>
-                </div>
-            `;
-
-            // Ouvrir le rapport dans un nouvel onglet
-            const newWindow = window.open('', '_blank');
-            newWindow.document.body.innerHTML = reportContent;
+            validateForm();
         });
 
-        // Fonction pour valider le formulaire
-        function validateForm(form) {
-            const requiredInputs = form.querySelectorAll('.required');
+        function validateForm() {
+            const requiredInputs = document.querySelectorAll('.required + input, .required + select, .required + textarea');
             let isValid = true;
 
             requiredInputs.forEach(input => {
-                if (input.tagName === 'INPUT' && input.type === 'radio') {
-                    const name = input.getAttribute('name');
-                    const radioGroup = form.querySelectorAll(`input[name="${name}"]`);
-                    let isChecked = false;
-
-                    radioGroup.forEach(radio => {
-                        if (radio.checked) {
-                            isChecked = true;
-                        }
-                    });
-
-                    if (!isChecked) {
-                        alert(`Veuillez sélectionner une option pour ${name}.`);
-                        isValid = false;
-                    }
-                } else if (!input.value.trim()) {
-                    alert(`Veuillez remplir le champ obligatoire : ${input.previousElementSibling.innerText}.`);
+                if (!input.value.trim()) {
+                    input.style.border = '1px solid red';
                     isValid = false;
+                } else {
+                    input.style.border = '1px solid #ccc';
                 }
             });
 
-            return isValid;
-        }
-
-        // Fonction pour récupérer les valeurs des checkboxes
-        function getCheckboxValues(name) {
-            const checkboxes = document.querySelectorAll(`input[name="${name}"]:checked`);
-            const values = [];
-
-            checkboxes.forEach(checkbox => {
-                values.push(checkbox.value);
+            const radioGroups = document.querySelectorAll('.required + input[type="radio"]');
+            radioGroups.forEach(radio => {
+                const name = radio.name;
+                const radios = document.querySelectorAll(`input[name="${name}"]`);
+                let isChecked = false;
+                radios.forEach(radio => {
+                    if (radio.checked) isChecked = true;
+                });
+                if (!isChecked) {
+                    radios.forEach(radio => radio.nextElementSibling.style.color = 'red');
+                    isValid = false;
+                } else {
+                    radios.forEach(radio => radio.nextElementSibling.style.color = '#333');
+                }
             });
 
-            return values;
+            if (isValid) generateReport();
+            else alert('Veuillez remplir tous les champs obligatoires.');
         }
+
+        function generateReport() {
+            const form = document.getElementById('diagnostic-form');
+            const formData = new FormData(form);
+
+            const date = new Date().toLocaleString();
+            const filename = `rapport_diagnostic_${new Date().toISOString().replace(/[:\-T]/g, '').split('.')[0]}.html`;
+
+            let reportHtml = `
+                <!DOCTYPE html>
+                <html lang="fr">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Rapport de Diagnostic Informatique</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            background-color: #f4f4f9;
+                            margin: 0;
+                            padding: 20px;
+                            color: #333;
+                        }
+                        .container {
+                            max-width: 800px;
+                            margin: 0 auto;
+                            background-color: #fff;
+                            padding: 20px;
+                            border-radius: 8px;
+                            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                        }
+                        h1, h2, h3, h4 {
+                            color: #007bff;
+                        }
+                        h2, h3 {
+                            border-bottom: 2px solid #007bff;
+                            padding-bottom: 5px;
+                        }
+                        pre {
+                            background-color: #f4f4f9;
+                            padding: 10px;
+                            border-left: 4px solid #007bff;
+                            overflow-x: auto;
+                        }
+                        .report-item {
+                            margin-bottom: 20px;
+                        }
+                        .report-item label {
+                            font-weight: bold;
+                        }
+                        .report-item span {
+                            display: inline-block;
+                            width: 100%;
+                            padding: 8px;
+                            border: 1px solid #ccc;
+                            border-radius: 4px;
+                            box-sizing: border-box;
+                            margin-top: 5px;
+                        }
+                        .report-item textarea {
+                            width: 100%;
+                            min-height: 100px;
+                            resize: vertical;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>Rapport de Diagnostic Informatique</h1>
+                        <p>Généré le : ${date}</p>
+            `;
+
+            formData.forEach((value, key) => {
+                if (value) {
+                    reportHtml += `
+                        <div class="report-item">
+                            <label>${key.replace(/-/g, ' ')}:</label>
+                            <span>${value}</span>
+                        </div>
+                    `;
+                }
+            });
+
+            const signature = formData.get('signature-client');
+            const dateSignature = formData.get('date-signature');
+            reportHtml += `
+                <div class="report-item">
+                    <label>Signature du Client :</label>
+                    <span>${signature}</span>
+                </div>
+                <div class="report-item">
+                    <label>Date :</label>
+                    <span>${dateSignature}</span>
+                </div>
+                <div class="report-item">
+                    <p>Nous ne sommes pas responsables des problèmes qui peuvent survenir suite à la réparation.</p>
+                </div>
+            `;
+
+            reportHtml += `
+                    </div>
+                </body>
+                </html>
+            `;
+
+            const blob = new Blob([reportHtml], { type: 'text/html' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.target = '_blank';
+            link.click();
+        }
+
+        document.getElementById('date-signature').value = new Date().toLocaleDateString('fr-CA');
     </script>
 </body>
 </html>
