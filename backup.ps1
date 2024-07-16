@@ -136,6 +136,20 @@ function Create-BackupGUI {
     $checkboxSerialNumbers.Size = New-Object System.Drawing.Size(250, 20)
     $form.Controls.Add($checkboxSerialNumbers)
     $yPosition += 30
+    
+    $checkboxApps = New-Object System.Windows.Forms.CheckBox
+    $checkboxApps.Text = "Backup installed applications"
+    $checkboxApps.Location = New-Object System.Drawing.Point(10, $yPosition)
+    $checkboxApps.Size = New-Object System.Drawing.Size(250, 20)
+    $form.Controls.Add($checkboxApps)
+    $yPosition += 30
+
+    $checkboxLogs = New-Object System.Windows.Forms.CheckBox
+    $checkboxLogs.Text = "Backup Windows logs"
+    $checkboxLogs.Location = New-Object System.Drawing.Point(10, $yPosition)
+    $checkboxLogs.Size = New-Object System.Drawing.Size(250, 20)
+    $form.Controls.Add($checkboxLogs)
+    $yPosition += 30
 
     # Add checkboxes for file types to backup
     $labelFileTypes = New-Object System.Windows.Forms.Label
@@ -150,17 +164,27 @@ function Create-BackupGUI {
     $checkboxFullProfile.Size = New-Object System.Drawing.Size(250, 20)
     $form.Controls.Add($checkboxFullProfile)
 
-    $fileTypes = @('Documents (*.doc, *.docx, *.pdf)', 'Images (*.jpg, *.jpeg, *.png, *.gif)', 'Music (*.mp3, *.wav)', 'Videos (*.mp4, *.avi, *.mkv)', 'Archives (*.zip, *.rar, *.7z)', 'Scripts (*.ps1, *.sh, *.py, *.js, *.rb)')
+    $fileTypes = @(
+        'Documents (*.doc, *.docx, *.pdf, *.txt, *.rtf, *.odt, *.xls, *.xlsx, *.ppt, *.pptx, *.epub, *.md, *.csv, *.tex, *.html, *.xml)',
+        'Images (*.jpg, *.jpeg, *.png, *.gif, *.bmp, *.tiff, *.svg, *.heic, *.webp, *.ico, *.raw)',
+        'Music (*.mp3, *.wav, *.flac, *.aac, *.ogg, *.wma, *.m4a, *.aiff, *.alac, *.midi)',
+        'Videos (*.mp4, *.avi, *.mkv, *.mov, *.wmv, *.flv, *.mpeg, *.3gp, *.webm, *.m4v)',
+        'Archives (*.zip, *.rar, *.7z, *.tar, *.gz, *.bz2, *.iso, *.tgz, *.xz, *.lzma)',
+        'Scripts (*.ps1, *.sh, *.py, *.js, *.rb, *.bat, *.cmd, *.vbs, *.php, *.pl, *.r, *.lua, *.ts, *.json, *.yaml, *.yml)',
+        'Databases (*.sql, *.db, *.sqlite, *.accdb, *.mdb, *.dbf, *.pdb, *.kdbx, *.xml, *.json)',
+        'Executables (*.exe, *.msi, *.bin, *.dll, *.app, *.apk, *.bat, *.cmd)',
+        'Others (*.log, *.ini, *.cfg, *.bak, *.tmp, *.dat, *.cache, *.tmp, *.dmp, *.torrent)'
+    )
     $fileTypeCheckboxes = @()
     $yFileTypePosition = 190
     foreach ($fileType in $fileTypes) {
         $fileTypeCheckbox = New-Object System.Windows.Forms.CheckBox
         $fileTypeCheckbox.Text = $fileType
         $fileTypeCheckbox.Location = New-Object System.Drawing.Point(300, $yFileTypePosition)
-        $fileTypeCheckbox.Size = New-Object System.Drawing.Size(250, 20)
+        $fileTypeCheckbox.Size = New-Object System.Drawing.Size(360, 40)
         $form.Controls.Add($fileTypeCheckbox)
         $fileTypeCheckboxes += $fileTypeCheckbox
-        $yFileTypePosition += 30
+        $yFileTypePosition += 40
     }
 
     $checkboxFullProfile.Add_CheckedChanged({
@@ -215,13 +239,22 @@ function Create-BackupGUI {
 
     $okButton.Add_Click({
         $selectedUsers = $checkboxes | Where-Object { $_.Checked }
-        if (-not $selectedUsers) {
-            $logLabel.Text = "Please select at least one profile to backup."
+        $backupGPO = $checkboxGPO.Checked
+        $backupRegistry = $checkboxRegistry.Checked
+        $backupPrinters = $checkboxPrinters.Checked
+        $backupDrivers = $checkboxDrivers.Checked
+        $backupPSTFiles = $checkboxPSTFiles.Checked
+        $backupSerialNumbers = $checkboxSerialNumbers.Checked
+        $backupApps = $checkboxApps.Checked
+        $backupLogs = $checkboxLogs.Checked
+
+        if (-not ($selectedUsers -or $backupGPO -or $backupRegistry -or $backupPrinters -or $backupDrivers -or $backupPSTFiles -or $backupSerialNumbers -or $backupApps -or $backupLogs)) {
+            $logLabel.Text = "Please select at least one profile or one backup option."
             return
         }
 
         $backupFullProfile = $checkboxFullProfile.Checked
-        if (-not $backupFullProfile) {
+        if ($selectedUsers -and -not $backupFullProfile) {
             $selectedFileTypes = $fileTypeCheckboxes | Where-Object { $_.Checked }
             if (-not $selectedFileTypes) {
                 $logLabel.Text = "Please select at least one file type to backup."
@@ -249,26 +282,44 @@ function Create-BackupGUI {
         foreach ($user in $selectedUsers) {
             $sourcePath = Join-Path -Path "C:\Users" -ChildPath $user.Text
             if ($backupFullProfile) {
-                $totalFiles += (Get-ChildItem -Path $sourcePath -Recurse -ErrorAction SilentlyContinue).Count
+                $totalFiles += (Get-ChildItem -Path $sourcePath -Recurse -Force -ErrorAction SilentlyContinue).Count
             } else {
                 foreach ($fileType in $selectedFileTypes) {
                     $fileTypePatterns = switch ($fileType.Text) {
-                        'Documents (*.doc, *.docx, *.pdf)' { '*.doc', '*.docx', '*.pdf' }
-                        'Images (*.jpg, *.jpeg, *.png, *.gif)' { '*.jpg', '*.jpeg', '*.png', '*.gif' }
-                        'Music (*.mp3, *.wav)' { '*.mp3', '*.wav' }
-                        'Videos (*.mp4, *.avi, *.mkv)' { '*.mp4', '*.avi', '*.mkv' }
-                        'Archives (*.zip, *.rar, *.7z)' { '*.zip', '*.rar', '*.7z' }
-                        'Scripts (*.ps1, *.sh, *.py, *.js, *.rb)' { '*.ps1', '*.sh', '*.py', '*.js', '*.rb' }
-                    }
-                    foreach ($pattern in $fileTypePatterns) {
-                        $totalFiles += (Get-ChildItem -Path $sourcePath -Recurse -Filter $pattern -ErrorAction SilentlyContinue).Count
+                        'Documents (*.doc, *.docx, *.pdf, *.txt, *.rtf, *.odt, *.xls, *.xlsx, *.ppt, *.pptx, *.epub, *.md, *.csv, *.tex, *.html, *.xml)' { 
+                            '*.doc', '*.docx', '*.pdf', '*.txt', '*.rtf', '*.odt', '*.xls', '*.xlsx', '*.ppt', '*.pptx', '*.epub', '*.md', '*.csv', '*.tex', '*.html', '*.xml' 
+                        }
+                        'Images (*.jpg, *.jpeg, *.png, *.gif, *.bmp, *.tiff, *.svg, *.heic, *.webp, *.ico, *.raw)' { 
+                            '*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp', '*.tiff', '*.svg', '*.heic', '*.webp', '*.ico', '*.raw' 
+                        }
+                        'Music (*.mp3, *.wav, *.flac, *.aac, *.ogg, *.wma, *.m4a, *.aiff, *.alac, *.midi)' { 
+                            '*.mp3', '*.wav', '*.flac', '*.aac', '*.ogg', '*.wma', '*.m4a', '*.aiff', '*.alac', '*.midi' 
+                        }
+                        'Videos (*.mp4, *.avi, *.mkv, *.mov, *.wmv, *.flv, *.mpeg, *.3gp, *.webm, *.m4v)' { 
+                            '*.mp4', '*.avi', '*.mkv', '*.mov', '*.wmv', '*.flv', '*.mpeg', '*.3gp', '*.webm', '*.m4v' 
+                        }
+                        'Archives (*.zip, *.rar, *.7z, *.tar, *.gz, *.bz2, *.iso, *.tgz, *.xz, *.lzma)' { 
+                            '*.zip', '*.rar', '*.7z', '*.tar', '*.gz', '*.bz2', '*.iso', '*.tgz', '*.xz', '*.lzma' 
+                        }
+                        'Scripts (*.ps1, *.sh, *.py, *.js, *.rb, *.bat, *.cmd, *.vbs, *.php, *.pl, *.r, *.lua, *.ts, *.json, *.yaml, *.yml)' { 
+                            '*.ps1', '*.sh', '*.py', '*.js', '*.rb', '*.bat', '*.cmd', '*.vbs', '*.php', '*.pl', '*.r', '*.lua', '*.ts', '*.json', '*.yaml', '*.yml' 
+                        }
+                        'Databases (*.sql, *.db, *.sqlite, *.accdb, *.mdb, *.dbf, *.pdb, *.kdbx, *.xml, *.json)' { 
+                            '*.sql', '*.db', '*.sqlite', '*.accdb', '*.mdb', '*.dbf', '*.pdb', '*.kdbx', '*.xml', '*.json' 
+                        }
+                        'Executables (*.exe, *.msi, *.bin, *.dll, *.app, *.apk, *.bat, *.cmd)' { 
+                            '*.exe', '*.msi', '*.bin', '*.dll', '*.app', '*.apk', '*.bat', '*.cmd' 
+                        }
+                        'Others (*.log, *.ini, *.cfg, *.bak, *.tmp, *.dat, *.cache, *.tmp, *.dmp, *.torrent)' { 
+                            '*.log', '*.ini', '*.cfg', '*.bak', '*.tmp', '*.dat', '*.cache', '*.tmp', '*.dmp', '*.torrent' 
+                        }
                     }
                 }
             }
         }
 
-        if ($totalFiles -eq 0) {
-            $logLabel.Text = "No files found for the selected profiles and file types."
+        if ($totalFiles -eq 0 -and -not ($backupGPO -or $backupRegistry -or $backupPrinters -or $backupDrivers -or $backupPSTFiles -or $backupSerialNumbers -or $backupApps -or $backupLogs)) {
+            $logLabel.Text = "No files found for the selected profiles and file types, and no other backup options selected."
             return
         }
 
@@ -285,7 +336,7 @@ function Create-BackupGUI {
 
             $sourcePath = Join-Path -Path "C:\Users" -ChildPath $user.Text
             if ($backupFullProfile) {
-                Get-ChildItem -Path $sourcePath -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+                Get-ChildItem -Path $sourcePath -Recurse -Force -ErrorAction SilentlyContinue | ForEach-Object {
                     if ($cancelRequested) {
                         Add-Content -Path $logFile -Value "Backup cancelled by user: $(Get-Date)"
                         $logLabel.Text = "Backup cancelled."
@@ -317,17 +368,38 @@ function Create-BackupGUI {
                 }
             } else {
                 foreach ($fileType in $selectedFileTypes) {
-                    $fileTypePatterns = switch ($fileType.Text) {
-                        'Documents (*.doc, *.docx, *.pdf)' { '*.doc', '*.docx', '*.pdf' }
-                        'Images (*.jpg, *.jpeg, *.png, *.gif)' { '*.jpg', '*.jpeg', '*.png', '*.gif' }
-                        'Music (*.mp3, *.wav)' { '*.mp3', '*.wav' }
-                        'Videos (*.mp4, *.avi, *.mkv)' { '*.mp4', '*.avi', '*.mkv' }
-                        'Archives (*.zip, *.rar, *.7z)' { '*.zip', '*.rar', '*.7z' }
-                        'Scripts (*.ps1, *.sh, *.py, *.js, *.rb)' { '*.ps1', '*.sh', '*.py', '*.js', '*.rb' }
+                   $fileTypePatterns = switch ($fileType.Text) {
+                        'Documents (*.doc, *.docx, *.pdf, *.txt, *.rtf, *.odt, *.xls, *.xlsx, *.ppt, *.pptx, *.epub, *.md, *.csv, *.tex, *.html, *.xml)' { 
+                            '*.doc', '*.docx', '*.pdf', '*.txt', '*.rtf', '*.odt', '*.xls', '*.xlsx', '*.ppt', '*.pptx', '*.epub', '*.md', '*.csv', '*.tex', '*.html', '*.xml' 
+                        }
+                        'Images (*.jpg, *.jpeg, *.png, *.gif, *.bmp, *.tiff, *.svg, *.heic, *.webp, *.ico, *.raw)' { 
+                            '*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp', '*.tiff', '*.svg', '*.heic', '*.webp', '*.ico', '*.raw' 
+                        }
+                        'Music (*.mp3, *.wav, *.flac, *.aac, *.ogg, *.wma, *.m4a, *.aiff, *.alac, *.midi)' { 
+                            '*.mp3', '*.wav', '*.flac', '*.aac', '*.ogg', '*.wma', '*.m4a', '*.aiff', '*.alac', '*.midi' 
+                        }
+                        'Videos (*.mp4, *.avi, *.mkv, *.mov, *.wmv, *.flv, *.mpeg, *.3gp, *.webm, *.m4v)' { 
+                            '*.mp4', '*.avi', '*.mkv', '*.mov', '*.wmv', '*.flv', '*.mpeg', '*.3gp', '*.webm', '*.m4v' 
+                        }
+                        'Archives (*.zip, *.rar, *.7z, *.tar, *.gz, *.bz2, *.iso, *.tgz, *.xz, *.lzma)' { 
+                            '*.zip', '*.rar', '*.7z', '*.tar', '*.gz', '*.bz2', '*.iso', '*.tgz', '*.xz', '*.lzma' 
+                        }
+                        'Scripts (*.ps1, *.sh, *.py, *.js, *.rb, *.bat, *.cmd, *.vbs, *.php, *.pl, *.r, *.lua, *.ts, *.json, *.yaml, *.yml)' { 
+                            '*.ps1', '*.sh', '*.py', '*.js', '*.rb', '*.bat', '*.cmd', '*.vbs', '*.php', '*.pl', '*.r', '*.lua', '*.ts', '*.json', '*.yaml', '*.yml' 
+                        }
+                        'Databases (*.sql, *.db, *.sqlite, *.accdb, *.mdb, *.dbf, *.pdb, *.kdbx, *.xml, *.json)' { 
+                            '*.sql', '*.db', '*.sqlite', '*.accdb', '*.mdb', '*.dbf', '*.pdb', '*.kdbx', '*.xml', '*.json' 
+                        }
+                        'Executables (*.exe, *.msi, *.bin, *.dll, *.app, *.apk, *.bat, *.cmd)' { 
+                            '*.exe', '*.msi', '*.bin', '*.dll', '*.app', '*.apk', '*.bat', '*.cmd' 
+                        }
+                        'Others (*.log, *.ini, *.cfg, *.bak, *.tmp, *.dat, *.cache, *.tmp, *.dmp, *.torrent)' { 
+                            '*.log', '*.ini', '*.cfg', '*.bak', '*.tmp', '*.dat', '*.cache', '*.tmp', '*.dmp', '*.torrent' 
+                        }
                     }
 
                     foreach ($pattern in $fileTypePatterns) {
-                        Get-ChildItem -Path $sourcePath -Recurse -Filter $pattern -ErrorAction SilentlyContinue | ForEach-Object {
+                        Get-ChildItem -Path $sourcePath -Recurse -Filter $pattern -Force -ErrorAction SilentlyContinue | ForEach-Object {
                             if ($cancelRequested) {
                                 Add-Content -Path $logFile -Value "Backup cancelled by user: $(Get-Date)"
                                 $logLabel.Text = "Backup cancelled."
@@ -360,7 +432,6 @@ function Create-BackupGUI {
                     }
                 }
             }
-
             Add-Content -Path $logFile -Value "Profile $($user.Text) backed up successfully."
         }
 
@@ -368,15 +439,138 @@ function Create-BackupGUI {
             Remove-Item "C:\Temp" -Recurse -Force
         }
 
-        # Backup the list of installed applications
-        $apps = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*, HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* |
+        # Backup the list of installed applications if selected
+        if ($checkboxApps.Checked) {
+            $appsWindows = @()
+            $appsOthers = @()
+
+            # 1. Applications installées à partir du registre
+            $registryApps = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*, HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* |
                 Select-Object DisplayName, InstallDate, Publisher, DisplayVersion |
                 Where-Object { $_.DisplayName -and $_.DisplayName -notmatch "^(Microsoft|Windows)" }
-        $appsFile = Join-Path -Path $backupPath -ChildPath "installed_apps.txt"
-        $apps | Format-Table -AutoSize | Out-String | Set-Content -Path $appsFile
+            $appsWindows += $registryApps
 
-        Add-Content -Path $logFile -Value "Installed applications list backed up successfully."
+            # 2. Applications installées via WMI
+            $wmiApps = Get-WmiObject -Query "SELECT * FROM Win32_Product" |
+                Select-Object Name, InstallDate, Vendor, Version |
+                Where-Object { $_.Name -and $_.Name -notmatch "^(Microsoft|Windows)" } |
+                ForEach-Object {
+                    New-Object PSObject -Property @{
+                        DisplayName = $_.Name
+                        InstallDate = $_.InstallDate
+                        Publisher = $_.Vendor
+                        DisplayVersion = $_.Version
+                    }
+                }
+            $appsWindows += $wmiApps
 
+            # 3. Applications de l'utilisateur actuel (si existant)
+            $currentUserApps = Get-ItemProperty HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*, HKCU:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* |
+                Select-Object DisplayName, InstallDate, Publisher, DisplayVersion |
+                Where-Object { $_.DisplayName -and $_.DisplayName -notmatch "^(Microsoft|Windows)" }
+            $appsWindows += $currentUserApps
+
+            # 4. Packages installés via Get-Package
+            $packageApps = Get-Package |
+                Select-Object Name, ProviderName, Version |
+                ForEach-Object {
+                    New-Object PSObject -Property @{
+                        DisplayName = $_.Name
+                        InstallDate = ""
+                        Publisher = $_.ProviderName
+                        DisplayVersion = $_.Version
+                    }
+                }
+            $appsWindows += $packageApps
+
+            # 5. Applications installées dans Program Files
+            $programFilesPaths = @("C:\Program Files", "C:\Program Files (x86)")
+            foreach ($path in $programFilesPaths) {
+                $programFilesApps = Get-ChildItem -Path $path -Directory | Select-Object Name, FullName |
+                    ForEach-Object {
+                        New-Object PSObject -Property @{
+                            DisplayName = $_.Name
+                            InstallDate = ""
+                            Publisher = "Unknown"
+                            DisplayVersion = ""
+                            Path = $_.FullName
+                        }
+                    }
+                $appsOthers += $programFilesApps
+            }
+
+            # 6. Applications installées dans AppData
+            $appDataPath = [System.Environment]::GetFolderPath("ApplicationData")
+            $appDataLocalPath = [System.Environment]::GetFolderPath("LocalApplicationData")
+            $appDataApps = Get-ChildItem -Path $appDataPath, $appDataLocalPath -Directory | Select-Object Name, FullName |
+                ForEach-Object {
+                    New-Object PSObject -Property @{
+                        DisplayName = $_.Name
+                        InstallDate = ""
+                        Publisher = "Unknown"
+                        DisplayVersion = ""
+                        Path = $_.FullName
+                    }
+                }
+            $appsOthers += $appDataApps
+
+            # Supprimer les doublons basés sur DisplayName et DisplayVersion
+            $appsWindows = $appsWindows | Sort-Object DisplayName, DisplayVersion -Unique
+            $appsOthers = $appsOthers | Sort-Object DisplayName, Path -Unique
+
+            # Enregistrer les applications dans un fichier CSV unique avec séparation
+            $appsCsvFile = Join-Path -Path $backupPath -ChildPath "installed_apps.csv"
+
+            # Créer l'en-tête CSV
+            "Source,DisplayName,InstallDate,Publisher,DisplayVersion,Path" | Out-File -FilePath $appsCsvFile -Encoding utf8
+
+            # Ajouter les applications de Program Files en premier
+            foreach ($app in $appsOthers) {
+                "Program Files,$($app.DisplayName),$($app.InstallDate),$($app.Publisher),$($app.DisplayVersion),$($app.Path)" | Out-File -FilePath $appsCsvFile -Append -Encoding utf8
+            }
+
+            # Ajouter une ligne vide pour la séparation
+            "" | Out-File -FilePath $appsCsvFile -Append -Encoding utf8
+
+            # Ajouter les applications du registre et autres
+            foreach ($app in $appsWindows) {
+                "Registry,$($app.DisplayName),$($app.InstallDate),$($app.Publisher),$($app.DisplayVersion)," | Out-File -FilePath $appsCsvFile -Append -Encoding utf8
+            }
+
+            # Ajouter une ligne vide pour la séparation
+            "" | Out-File -FilePath $appsCsvFile -Append -Encoding utf8
+
+            # Ajouter les applications trouvées dans AppData
+            foreach ($app in $appsOthers) {
+                if ($app.Path -like "*AppData*") {
+                    "AppData,$($app.DisplayName),$($app.InstallDate),$($app.Publisher),$($app.DisplayVersion),$($app.Path)" | Out-File -FilePath $appsCsvFile -Append -Encoding utf8
+                }
+            }
+
+            Add-Content -Path $logFile -Value "Installed applications list backed up successfully."
+        }
+
+        # Backup Windows logs if selected
+        if ($checkboxLogs.Checked) {
+            try {
+                $logsBackupPath = Join-Path -Path $backupPath -ChildPath "WindowsLogs"
+                if (-not (Test-Path -Path $logsBackupPath)) {
+                    New-Item -ItemType Directory -Path $logsBackupPath -Force
+                }
+                $eventLogs = Get-WinEvent -ListLog *
+                foreach ($log in $eventLogs) {
+                    $logFile = Join-Path -Path $logsBackupPath -ChildPath "$($log.LogName).evtx"
+                    wevtutil epl $log.LogName $logFile
+                }
+                Add-Content -Path $logFile -Value "Windows logs backed up successfully."
+            } catch {
+                $logLabel.Text = "Error backing up Windows logs: $_"
+                Add-Content -Path $logFile -Value "Error backing up Windows logs: $_"
+            }
+        }
+
+        
+        
         # Backup local GPOs if selected
         if ($checkboxGPO.Checked) {
             try {
@@ -407,7 +601,6 @@ function Create-BackupGUI {
                 Add-Content -Path $logFile -Value "Error backing up registry keys: $_"
             }
         }
-
         # Backup printers and drivers if selected
         if ($checkboxPrinters.Checked) {
             try {
@@ -415,21 +608,59 @@ function Create-BackupGUI {
                 if (-not (Test-Path -Path $printersBackupPath)) {
                     New-Item -ItemType Directory -Path $printersBackupPath -Force
                 }
-                $printers = Get-Printer | Select-Object Name, DriverName, PortName
+                
+                # Get the list of printers with detailed information
+                $printers = Get-Printer | Select-Object Name, DriverName, PortName, Location, Comment, Shared, ShareName, Published, Type, DeviceID, PrinterStatus, Status, Default, PrintProcessor
                 $printersFile = Join-Path -Path $printersBackupPath -ChildPath "printers.txt"
                 $printers | Format-Table -AutoSize | Out-String | Set-Content -Path $printersFile
                 Add-Content -Path $logFile -Value "Printers list backed up successfully."
 
+                # Get the list of printer drivers
                 $drivers = Get-PrinterDriver | Select-Object Name, Manufacturer, Version
                 $driversFile = Join-Path -Path $printersBackupPath -ChildPath "drivers.txt"
                 $drivers | Format-Table -AutoSize | Out-String | Set-Content -Path $driversFile
                 Add-Content -Path $logFile -Value "Printer drivers backed up successfully."
+
+                # Export printer drivers
+                $driversBackupPath = Join-Path -Path $printersBackupPath -ChildPath "Drivers"
+                if (-not (Test-Path -Path $driversBackupPath)) {
+                    New-Item -ItemType Directory -Path $driversBackupPath -Force
+                }
+
+                $driverFound = $false
+                foreach ($driver in $drivers) {
+                    # Find the corresponding inf files for the driver
+                    $driverInfFiles = Get-WmiObject Win32_PnPSignedDriver | Where-Object { $_.ClassGuid -eq "{4d36e979-e325-11ce-bfc1-08002be10318}" -and $_.DriverName -eq $driver.Name } | Select-Object -ExpandProperty InfName -Unique
+                    if ($driverInfFiles) {
+                        $driverFound = $true
+                        foreach ($infFile in $driverInfFiles) {
+                            $infFilePath = Join-Path -Path "C:\Windows\INF" -ChildPath $infFile
+                            if (Test-Path -Path $infFilePath) {
+                                $driverBackupDir = Join-Path -Path $driversBackupPath -ChildPath ([System.IO.Path]::GetFileNameWithoutExtension($infFile))
+                                if (-not (Test-Path -Path $driverBackupDir)) {
+                                    New-Item -ItemType Directory -Path $driverBackupDir -Force
+                                }
+                                Start-Process -FilePath "pnputil.exe" -ArgumentList "/export-driver $infFilePath $driverBackupDir" -NoNewWindow -Wait
+                            } else {
+                                Add-Content -Path $logFile -Value "Driver file not found: $infFilePath"
+                            }
+                        }
+                    }
+                }
+
+                if (-not $driverFound) {
+                    Add-Content -Path $logFile -Value "No printer drivers found to back up."
+                    $logLabel.Text = "No printer drivers found to back up."
+                } else {
+                    Add-Content -Path $logFile -Value "Printer drivers exported successfully."
+                }
             } catch {
                 $logLabel.Text = "Error backing up printers and drivers: $_"
                 Add-Content -Path $logFile -Value "Error backing up printers and drivers: $_"
             }
         }
 
+        
         # Backup Windows drivers if selected
         if ($checkboxDrivers.Checked) {
             try {
