@@ -35,6 +35,9 @@
         }
         .form-group input[type="text"],
         .form-group input[type="tel"],
+        .form-group input[type="password"],
+        .form-group input[type="number"],
+        .form-group input[type="date"],
         .form-group select,
         .form-group textarea {
             width: 100%;
@@ -53,6 +56,9 @@
         }
         .form-group .checkbox-label {
             margin-right: 15px;
+            background-color: #e0f7fa;
+            padding: 5px;
+            border-radius: 4px;
         }
         .form-group .inline {
             display: inline-block;
@@ -135,6 +141,42 @@
                 <input type="tel" id="telephone" name="telephone" required>
             </div>
             <div class="form-group">
+                <label for="fonctionnel-moment" class="required">L'appareil est-il Fonctionnel Actuellement ou l'avez-vous Vu Allumé ?</label><br>
+                <input type="radio" id="fonctionnel-oui" name="fonctionnel-moment" value="Oui" required>
+                <label class="radio-label" for="fonctionnel-oui">Oui</label>
+                <input type="radio" id="fonctionnel-non" name="fonctionnel-moment" value="Non" required>
+                <label class="radio-label" for="fonctionnel-non">Non</label>
+            </div>
+            <div class="form-group" id="password-section" style="display: none;">
+                <label for="protection-password" class="required">L'appareil est-il protégé par un mot de passe ?</label><br>
+                <input type="radio" id="password-oui" name="protection-password" value="Oui" required>
+                <label class="radio-label" for="password-oui">Oui</label>
+                <input type="radio" id="password-non" name="protection-password" value="Non" required>
+                <label class="radio-label" for="password-non">Non</label>
+            </div>
+            <div class="form-group" id="password-field" style="display: none;">
+                <label for="password">Mot de Passe :</label>
+                <input type="password" id="password" name="password">
+            </div>
+            <div class="form-group">
+                <label class="required">Adaptateur de Courant :</label><br>
+                <input type="radio" id="adapteur-oui" name="adapteur-courant" value="Oui" required>
+                <label class="radio-label" for="adapteur-oui">Oui</label>
+                <input type="radio" id="adapteur-non" name="adapteur-courant" value="Non" required>
+                <label class="radio-label" for="adapteur-non">Non</label>
+            </div>
+            <div class="form-group">
+                <label for="duree-probleme" class="required">Depuis Quand Dure le Problème Principal :</label>
+                <input type="text" id="duree-probleme" name="duree-probleme" required>
+            </div>
+            <div class="form-group">
+                <label for="virus-infection">Le problème est-il lié à une infection par un virus ou un malware ?</label><br>
+                <input type="radio" id="virus-oui" name="virus-infection" value="Oui">
+                <label class="radio-label" for="virus-oui">Oui</label>
+                <input type="radio" id="virus-non" name="virus-infection" value="Non">
+                <label class="radio-label" for="virus-non">Non</label>
+            </div>
+            <div class="form-group">
                 <label for="type-appareil" class="required">Type d'Appareil :</label>
                 <select id="type-appareil" name="type-appareil" required>
                     <option value="">Sélectionner...</option>
@@ -146,113 +188,58 @@
                     <option value="Autre">Autre</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label class="required">Adaptateur de Courant :</label><br>
-                <input type="radio" id="adapteur-oui" name="adapteur-courant" value="Oui" required>
-                <label class="radio-label" for="adapteur-oui">Oui</label>
-                <input type="radio" id="adapteur-non" name="adapteur-courant" value="Non" required>
-                <label class="radio-label" for="adapteur-non">Non</label>
-            </div>
-            <div class="form-group">
-                <label for="duree-probleme" class="required">Depuis Quand Durée le Problème Principal :</label>
-                <input type="text" id="duree-probleme" name="duree-probleme" required>
-            </div>
-            <div class="form-group">
-                <label for="fonctionnel-moment" class="required">L'appareil est-il Fonctionnel Actuellement ou l'avez-vous Vu Allumé ?</label><br>
-                <input type="radio" id="fonctionnel-oui" name="fonctionnel-moment" value="Oui" required>
-                <label class="radio-label" for="fonctionnel-oui">Oui</label>
-                <input type="radio" id="fonctionnel-non" name="fonctionnel-moment" value="Non" required>
-                <label class="radio-label" for="fonctionnel-non">Non</label>
-            </div>
-            <div class="form-group">
-                <label for="virus-infection">Le problème est-il lié à une infection par un virus ou un malware ?</label><br>
-                <input type="radio" id="virus-oui" name="virus-infection" value="Oui">
-                <label class="radio-label" for="virus-oui">Oui</label>
-                <input type="radio" id="virus-non" name="virus-infection" value="Non">
-                <label class="radio-label" for="virus-non">Non</label>
-            </div>
-            <div class="form-group">
-                <label>Utilisation Récemment Modifiée :</label><br>
-                <input type="checkbox" id="utilisation-modifiee" name="utilisation-modifiee[]" value="Mise à Jour du Système d'Exploitation">
-                <label class="checkbox-label" for="utilisation-modifiee">Mise à Jour du Système d'Exploitation</label>
-                <input type="checkbox" id="utilisation-modifiee2" name="utilisation-modifiee[]" value="Installation de Nouveaux Programmes">
-                <label class="checkbox-label" for="utilisation-modifiee2">Installation de Nouveaux Programmes</label>
-                <input type="checkbox" id="utilisation-modifiee3" name="utilisation-modifiee[]" value="Changement de Matériel">
-                <label class="checkbox-label" for="utilisation-modifiee3">Changement de Matériel</label>
-                <input type="checkbox" id="utilisation-modifiee4" name="utilisation-modifiee[]" value="Suppression de Programmes">
-                <label class="checkbox-label" for="utilisation-modifiee4">Suppression de Programmes</label>
-            </div>
-            <div class="form-group">
-                <label for="marque-appareil">Marque de l'Appareil :</label>
-                <input type="text" id="marque-appareil" name="marque-appareil">
-            </div>
-            <div class="form-group">
-                <label for="probleme">Description du Problème :</label>
-                <textarea id="probleme" name="probleme" rows="4"></textarea>
-            </div>
-            <div class="form-group">
-                <label for="code-erreur">Code d'Erreur (le cas échéant) :</label>
-                <input type="text" id="code-erreur" name="code-erreur">
-            </div>
-            <div class="form-group">
-                <label for="système-exploitation">Système d'Exploitation :</label>
-                <select id="système-exploitation" name="système-exploitation">
-                    <option value="">Sélectionner...</option>
-                    <option value="Windows 10">Windows 10</option>
-                    <option value="Windows 11">Windows 11</option>
-                    <option value="macOS">macOS</option>
-                    <option value="Linux">Linux</option>
-                    <option value="Autre">Autre</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="pieces-remplacees">Pièces Déjà Remplacées :</label>
-                <input type="text" id="pieces-remplacees" name="pieces-remplacees">
-            </div>
-            <div class="form-group">
-                <label for="historique-probleme">Historique du Problème :</label>
-                <textarea id="historique-probleme" name="historique-probleme" rows="4"></textarea>
-                <span class="notes">Inclure les symptômes observés avant d'amener l'appareil.</span>
-            </div>
-            <div class="form-group">
-                <label>Sauvegardes Disponibles :</label><br>
-                <input type="radio" id="sauvegardes-oui" name="sauvegardes" value="Oui">
-                <label class="radio-label" for="sauvegardes-oui">Oui</label>
-                <input type="radio" id="sauvegardes-non" name="sauvegardes" value="Non">
-                <label class="radio-label" for="sauvegardes-non">Non</label>
-            </div>
-            <div class="form-group">
-                <label for="antivirus">Antivirus Utilisé :</label>
-                <input type="text" id="antivirus" name="antivirus">
-            </div>
-            <div class="form-group">
-                <label for="connexion-reseau">Détails de Connexion Réseau :</label>
-                <textarea id="connexion-reseau" name="connexion-reseau" rows="4"></textarea>
-            </div>
-            <div class="form-group">
-                <label>Problèmes de Performances :</label><br>
-                <input type="checkbox" id="performances-ralentissements" name="performances[]" value="Ralentissements">
-                <label class="checkbox-label" for="performances-ralentissements">Ralentissements</label>
-                <input type="checkbox" id="performances-gels" name="performances[]" value="Écrans Gelés">
-                <label class="checkbox-label" for="performances-gels">Écrans Gelés</label>
-                <input type="checkbox" id="performances-redemarrages" name="performances[]" value="Redémarrages Inattendus">
-                <label class="checkbox-label" for="performances-redemarrages">Redémarrages Inattendus</label>
-                <input type="checkbox" id="performances-erreurs" name="performances[]" value="Messages d'Erreur">
-                <label class="checkbox-label" for="performances-erreurs">Messages d'Erreur</label>
-                <input type="checkbox" id="performances-autre" name="performances[]" value="Autre">
-                <label class="checkbox-label" for="performances-autre">Autre</label>
-            </div>
-            <div class="form-group">
-                <label for="notes-additionnelles">Notes Additionnelles :</label>
-                <textarea id="notes-additionnelles" name="notes-additionnelles" rows="4"></textarea>
-            </div>
-            <div class="form-group signature-container">
-                <label for="signature-client">Signature du Client :</label>
-                <input type="text" id="signature-client" name="signature-client">
-                <span>Date : <input type="text" id="date-signature" name="date-signature" readonly></span>
-            </div>
-            <div class="form-group">
-                <p>Nous ne sommes pas responsables des problèmes qui peuvent survenir suite à la réparation.</p>
+            <div id="questions-section" style="display: none;">
+                <div class="form-group">
+                    <label for="marque-appareil">Marque de l'Appareil :</label>
+                    <input type="text" id="marque-appareil" name="marque-appareil">
+                </div>
+                <div class="form-group">
+                    <label for="probleme">Description du Problème :</label>
+                    <textarea id="probleme" name="probleme" rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="code-erreur">Code d'Erreur (le cas échéant) :</label>
+                    <input type="text" id="code-erreur" name="code-erreur">
+                </div>
+                <div class="form-group">
+                    <label for="système-exploitation">Système d'Exploitation :</label>
+                    <select id="système-exploitation" name="système-exploitation">
+                        <option value="">Sélectionner...</option>
+                        <option value="Windows 10">Windows 10</option>
+                        <option value="Windows 11">Windows 11</option>
+                        <option value="macOS">macOS</option>
+                        <option value="Linux">Linux</option>
+                        <option value="Autre">Autre</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="pieces-remplacees">Pièces Déjà Remplacées :</label>
+                    <input type="text" id="pieces-remplacees" name="pieces-remplacees">
+                </div>
+                <div class="form-group">
+                    <label for="historique-probleme">Historique du Problème :</label>
+                    <textarea id="historique-probleme" name="historique-probleme" rows="4"></textarea>
+                    <span class="notes">Inclure les symptômes observés avant d'amener l'appareil.</span>
+                </div>
+                <div class="form-group">
+                    <label>Sauvegardes Disponibles :</label><br>
+                    <input type="radio" id="sauvegardes-oui" name="sauvegardes" value="Oui">
+                    <label class="radio-label" for="sauvegardes-oui">Oui</label>
+                    <input type="radio" id="sauvegardes-non" name="sauvegardes" value="Non">
+                    <label class="radio-label" for="sauvegardes-non">Non</label>
+                </div>
+                <div class="form-group">
+                    <label for="antivirus">Antivirus Utilisé :</label>
+                    <input type="text" id="antivirus" name="antivirus">
+                </div>
+                <div class="form-group">
+                    <label for="connexion-reseau">Détails de Connexion Réseau :</label>
+                    <textarea id="connexion-reseau" name="connexion-reseau" rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="notes-additionnelles">Notes Additionnelles :</label>
+                    <textarea id="notes-additionnelles" name="notes-additionnelles" rows="4"></textarea>
+                </div>
             </div>
             <button type="submit" class="submit-btn">Soumettre</button>
         </form>
@@ -264,6 +251,303 @@
         diagnosticForm.addEventListener('submit', function(event) {
             event.preventDefault();
             validateForm();
+        });
+
+        document.getElementById('type-appareil').addEventListener('change', function(event) {
+            const typeAppareil = event.target.value;
+            const questionsSection = document.getElementById('questions-section');
+            const passwordSection = document.getElementById('password-section');
+            const passwordField = document.getElementById('password-field');
+
+            passwordSection.style.display = 'none';
+            passwordField.style.display = 'none';
+            questionsSection.innerHTML = '';
+
+            if (typeAppareil) {
+                questionsSection.style.display = 'block';
+
+                if (typeAppareil === 'Laptop' || typeAppareil === 'Cellulaire' || typeAppareil === 'Tablette') {
+                    passwordSection.style.display = 'block';
+                    passwordField.style.display = 'block';
+                }
+
+                if (typeAppareil === 'Imprimante') {
+                    questionsSection.innerHTML += `
+                        <div class="form-group">
+                            <label for="type-connexion">Type de Connexion :</label>
+                            <select id="type-connexion" name="type-connexion">
+                                <option value="">Sélectionner...</option>
+                                <option value="USB">USB</option>
+                                <option value="Réseau">Réseau</option>
+                                <option value="Sans Fil">Sans Fil</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="marque-cartouche">Marque des Cartouches :</label>
+                            <select id="marque-cartouche" name="marque-cartouche">
+                                <option value="">Sélectionner...</option>
+                                <option value="Original">Original</option>
+                                <option value="Compatible">Compatible</option>
+                                <option value="Rechargée">Rechargée</option>
+                                <option value="Autre">Autre</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="specify-cartouche" style="display: none;">
+                            <label for="specification-cartouche">Veuillez spécifier :</label>
+                            <input type="text" id="specification-cartouche" name="specification-cartouche">
+                        </div>
+                        <div class="form-group">
+                            <label for="dernier-entretien">Date du Dernier Entretien :</label>
+                            <input type="date" id="dernier-entretien" name="dernier-entretien">
+                        </div>
+                        <div class="form-group">
+                            <label for="nombre-pages-imprimees">Nombre de Pages Imprimées :</label>
+                            <input type="number" id="nombre-pages-imprimees" name="nombre-pages-imprimees">
+                        </div>
+                        <div class="form-group">
+                            <label for="message-erreur">Message d'Erreur :</label>
+                            <input type="text" id="message-erreur" name="message-erreur">
+                        </div>
+                        <div class="form-group">
+                            <label for="papier-bloque">Le papier est-il bloqué ?</label><br>
+                            <input type="radio" id="papier-bloque-oui" name="papier-bloque" value="Oui">
+                            <label class="radio-label" for="papier-bloque-oui">Oui</label>
+                            <input type="radio" id="papier-bloque-non" name="papier-bloque" value="Non">
+                            <label class="radio-label" for="papier-bloque-non">Non</label>
+                        </div>
+                        <div class="form-group">
+                            <label for="qualite-impression">Qualité d'Impression :</label>
+                            <select id="qualite-impression" name="qualite-impression">
+                                <option value="">Sélectionner...</option>
+                                <option value="Bonne">Bonne</option>
+                                <option value="Moyenne">Moyenne</option>
+                                <option value="Mauvaise">Mauvaise</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="bruit-anormal">Avez-vous remarqué un bruit anormal ?</label><br>
+                            <input type="radio" id="bruit-anormal-oui" name="bruit-anormal" value="Oui">
+                            <label class="radio-label" for="bruit-anormal-oui">Oui</label>
+                            <input type="radio" id="bruit-anormal-non" name="bruit-anormal" value="Non">
+                            <label class="radio-label" for="bruit-anormal-non">Non</label>
+                        </div>
+                        <div class="form-group">
+                            <label for="probleme-tambour">Suspicion de Problème de Tambour :</label><br>
+                            <input type="radio" id="probleme-tambour-oui" name="probleme-tambour" value="Oui">
+                            <label class="radio-label" for="probleme-tambour-oui">Oui</label>
+                            <input type="radio" id="probleme-tambour-non" name="probleme-tambour" value="Non">
+                            <label class="radio-label" for="probleme-tambour-non">Non</label>
+                        </div>
+                        <div class="form-group">
+                            <label for="autre-problemes">Y a-t-il d'autres problèmes ou observations ?</label>
+                            <textarea id="autre-problemes" name="autre-problemes" rows="4"></textarea>
+                        </div>
+                    `;
+
+                    document.getElementById('marque-cartouche').addEventListener('change', function() {
+                        const specifyCartouche = document.getElementById('specify-cartouche');
+                        if (this.value === 'Autre') {
+                            specifyCartouche.style.display = 'block';
+                        } else {
+                            specifyCartouche.style.display = 'none';
+                        }
+                    });
+                
+                } else if (typeAppareil === 'Laptop') {
+                    questionsSection.innerHTML += `
+                        <div class="form-group">
+                            <label for="modele-laptop">Modèle du Laptop :</label>
+                            <input type="text" id="modele-laptop" name="modele-laptop">
+                        </div>
+                        <div class="form-group">
+                            <label for="os-laptop">Système d'exploitation :</label>
+                            <input type="text" id="os-laptop" name="os-laptop">
+                        </div>
+                        <div class="form-group">
+                            <label>Utilisation Récemment Modifiée :</label><br>
+                            <input type="checkbox" id="utilisation-modifiee" name="utilisation-modifiee[]" value="Mise à Jour du Système d'Exploitation">
+                            <label class="checkbox-label" for="utilisation-modifiee">Mise à Jour du Système d'Exploitation</label>
+                            <input type="checkbox" id="utilisation-modifiee2" name="utilisation-modifiee[]" value="Installation de Nouveaux Programmes">
+                            <label class="checkbox-label" for="utilisation-modifiee2">Installation de Nouveaux Programmes</label>
+                            <input type="checkbox" id="utilisation-modifiee3" name="utilisation-modifiee[]" value="Changement de Matériel">
+                            <label class="checkbox-label" for="utilisation-modifiee3">Changement de Matériel</label>
+                            <input type="checkbox" id="utilisation-modifiee4" name="utilisation-modifiee[]" value="Suppression de Programmes">
+                            <label class="checkbox-label" for="utilisation-modifiee4">Suppression de Programmes</label>
+                        </div>
+                        <div class="form-group">
+                            <label>Problèmes Rencontrés :</label><br>
+                            <input type="checkbox" id="probleme-performances" name="problemes[]" value="Performances">
+                            <label class="checkbox-label" for="probleme-performances">Performances</label>
+                            <textarea id="details-performances" name="details-performances" rows="4" placeholder="Détails sur les problèmes de performances..."></textarea>
+                            <input type="checkbox" id="probleme-ecran" name="problemes[]" value="Ecran">
+                            <label class="checkbox-label" for="probleme-ecran">Ecran</label>
+                            <textarea id="details-ecran" name="details-ecran" rows="4" placeholder="Détails sur les problèmes d'écran..."></textarea>
+                            <input type="checkbox" id="probleme-chauffe" name="problemes[]" value="Chauffe">
+                            <label class="checkbox-label" for="probleme-chauffe">Chauffe</label>
+                            <textarea id="details-chauffe" name="details-chauffe" rows="4" placeholder="Détails sur les problèmes de chauffe..."></textarea>
+                            <input type="checkbox" id="probleme-batterie" name="problemes[]" value="Batterie">
+                            <label class="checkbox-label" for="probleme-batterie">Batterie</label>
+                            <textarea id="details-batterie" name="details-batterie" rows="4" placeholder="Détails sur les problèmes de batterie..."></textarea>
+                            <input type="checkbox" id="probleme-clavier" name="problemes[]" value="Clavier">
+                            <label class="checkbox-label" for="probleme-clavier">Clavier</label>
+                            <textarea id="details-clavier" name="details-clavier" rows="4" placeholder="Détails sur les problèmes de clavier..."></textarea>
+                            <input type="checkbox" id="probleme-touchpad" name="problemes[]" value="Touchpad">
+                            <label class="checkbox-label" for="probleme-touchpad">Touchpad</label>
+                            <textarea id="details-touchpad" name="details-touchpad" rows="4" placeholder="Détails sur les problèmes de touchpad..."></textarea>
+                            <input type="checkbox" id="probleme-connectivite" name="problemes[]" value="Connectivité">
+                            <label class="checkbox-label" for="probleme-connectivite">Connectivité</label>
+                            <textarea id="details-connectivite" name="details-connectivite" rows="4" placeholder="Détails sur les problèmes de connectivité..."></textarea>
+                        </div>
+                    `;
+
+                } else if (typeAppareil === 'Ordinateur de Bureau') {
+                    questionsSection.innerHTML += `
+                        <div class="form-group">
+                            <label for="modele-bureau">Modèle de l'Ordinateur de Bureau :</label>
+                            <input type="text" id="modele-bureau" name="modele-bureau">
+                        </div>
+                        <div class="form-group">
+                            <label for="os-bureau">Système d'exploitation :</label>
+                            <input type="text" id="os-bureau" name="os-bureau">
+                        </div>
+                        <div class="form-group">
+                            <label for="os-laptop">Système d'exploitation :</label>
+                            <input type="text" id="os-laptop" name="os-laptop">
+                        </div>
+                        <div class="form-group">
+                            <label>Utilisation Récemment Modifiée :</label><br>
+                            <input type="checkbox" id="utilisation-modifiee" name="utilisation-modifiee[]" value="Mise à Jour du Système d'Exploitation">
+                            <label class="checkbox-label" for="utilisation-modifiee">Mise à Jour du Système d'Exploitation</label>
+                            <input type="checkbox" id="utilisation-modifiee2" name="utilisation-modifiee[]" value="Installation de Nouveaux Programmes">
+                            <label class="checkbox-label" for="utilisation-modifiee2">Installation de Nouveaux Programmes</label>
+                            <input type="checkbox" id="utilisation-modifiee3" name="utilisation-modifiee[]" value="Changement de Matériel">
+                            <label class="checkbox-label" for="utilisation-modifiee3">Changement de Matériel</label>
+                            <input type="checkbox" id="utilisation-modifiee4" name="utilisation-modifiee[]" value="Suppression de Programmes">
+                            <label class="checkbox-label" for="utilisation-modifiee4">Suppression de Programmes</label>
+                        </div>
+                        <div class="form-group">
+                            <label>Problèmes de Performances :</label><br>
+                            <input type="checkbox" id="performances-ralentissements" name="performances[]" value="Ralentissements">
+                            <label class="checkbox-label" for="performances-ralentissements">Ralentissements</label>
+                            <input type="checkbox" id="performances-gels" name="performances[]" value="Écrans Gelés">
+                            <label class="checkbox-label" for="performances-gels">Écrans Gelés</label>
+                            <input type="checkbox" id="performances-redemarrages" name="performances[]" value="Redémarrages Inattendus">
+                            <label class="checkbox-label" for="performances-redemarrages">Redémarrages Inattendus</label>
+                            <input type="checkbox" id="performances-erreurs" name="performances[]" value="Messages d'Erreur">
+                            <label class="checkbox-label" for="performances-erreurs">Messages d'Erreur</label>
+                            <input type="checkbox" id="performances-autre" name="performances[]" value="Autre">
+                            <label class="checkbox-label" for="performances-autre">Autre</label>
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-laptop">Problèmes rencontrés :</label>
+                            <textarea id="problemes-laptop" name="problemes-laptop" rows="4"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-bureau">Problèmes rencontrés :</label>
+                            <textarea id="problemes-bureau" name="problemes-bureau" rows="4"></textarea>
+                        </div>
+                    `;
+
+                } else if (typeAppareil === 'Cellulaire') {
+                    questionsSection.innerHTML += `
+                        <div class="form-group">
+                            <label for="modele-telephone">Modèle du Téléphone :</label>
+                            <input type="text" id="modele-telephone" name="modele-telephone">
+                        </div>
+                        <div class="form-group">
+                            <label for="version-android">Version d'Android :</label>
+                            <input type="text" id="version-android" name="version-android">
+                        </div>
+                        <div class="form-group">
+                            <label for="etat-ecran">État de l'Écran :</label>
+                            <select id="etat-ecran" name="etat-ecran">
+                                <option value="">Sélectionner...</option>
+                                <option value="Intact">Intact</option>
+                                <option value="Fissuré">Fissuré</option>
+                                <option value="Cassé">Cassé</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-batterie">Problèmes de Batterie :</label>
+                            <input type="text" id="problemes-batterie" name="problemes-batterie">
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-performance">Problèmes de Performance :</label>
+                            <input type="text" id="problemes-performance" name="problemes-performance">
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-connectivite">Problèmes de Connectivité :</label>
+                            <input type="text" id="problemes-connectivite" name="problemes-connectivite">
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-logiciels">Problèmes de Logiciels :</label>
+                            <input type="text" id="problemes-logiciels" name="problemes-logiciels">
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-stockage">Problèmes de Stockage :</label>
+                            <input type="text" id="problemes-stockage" name="problemes-stockage">
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-son">Problèmes de Son :</label>
+                            <input type="text" id="problemes-son" name="problemes-son">
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-camera">Problèmes de Caméra :</label>
+                            <input type="text" id="problemes-camera" name="problemes-camera">
+                        </div>
+                    `;
+                } else if (typeAppareil === 'Tablette') {
+                    questionsSection.innerHTML += `
+                        <div class="form-group">
+                            <label for="modele-tablette">Modèle de la Tablette :</label>
+                            <input type="text" id="modele-tablette" name="modele-tablette">
+                        </div>
+                        <div class="form-group">
+                            <label for="version-android">Version d'Android :</label>
+                            <input type="text" id="version-android" name="version-android">
+                        </div>
+                        <div class="form-group">
+                            <label for="etat-ecran-tablette">État de l'Écran :</label>
+                            <select id="etat-ecran-tablette" name="etat-ecran-tablette">
+                                <option value="">Sélectionner...</option>
+                                <option value="Intact">Intact</option>
+                                <option value="Fissuré">Fissuré</option>
+                                <option value="Cassé">Cassé</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-batterie-tablette">Problèmes de Batterie :</label>
+                            <input type="text" id="problemes-batterie-tablette" name="problemes-batterie-tablette">
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-performance-tablette">Problèmes de Performance :</label>
+                            <input type="text" id="problemes-performance-tablette" name="problemes-performance-tablette">
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-connectivite-tablette">Problèmes de Connectivité :</label>
+                            <input type="text" id="problemes-connectivite-tablette" name="problemes-connectivite-tablette">
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-logiciels-tablette">Problèmes de Logiciels :</label>
+                            <input type="text" id="problemes-logiciels-tablette" name="problemes-logiciels-tablette">
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-stockage-tablette">Problèmes de Stockage :</label>
+                            <input type="text" id="problemes-stockage-tablette" name="problemes-stockage-tablette">
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-son-tablette">Problèmes de Son :</label>
+                            <input type="text" id="problemes-son-tablette" name="problemes-son-tablette">
+                        </div>
+                        <div class="form-group">
+                            <label for="problemes-camera-tablette">Problèmes de Caméra :</label>
+                            <input type="text" id="problemes-camera-tablette" name="problemes-camera-tablette">
+                        </div>
+                    `;
+                }
+            } else {
+                questionsSection.style.display = 'none';
+            }
         });
 
         function validateForm() {
@@ -381,19 +665,28 @@
                 }
             });
 
-            const signature = formData.get('signature-client');
-            const dateSignature = formData.get('date-signature');
             reportHtml += `
                 <div class="report-item">
                     <label>Signature du Client :</label>
-                    <span>${signature}</span>
+                    <div style="border: 1px solid #ccc; height: 100px; width: 100%; margin-top: 10px;"></div>
                 </div>
                 <div class="report-item">
                     <label>Date :</label>
-                    <span>${dateSignature}</span>
+                    <span>${new Date().toLocaleDateString('fr-CA')}</span>
                 </div>
                 <div class="report-item">
-                    <p>Nous ne sommes pas responsables des problèmes qui peuvent survenir suite à la réparation.</p>
+                    <p>
+                        Nous ne pouvons être tenus responsables des dommages matériels qui pourraient survenir pendant le processus de réparation,
+                        y compris mais non limité à la casse, la dégradation ou la perte de pièces.
+                    </p>
+                    <p>
+                        Nous ne sommes pas responsables de la perte de données. Il est de votre responsabilité de sauvegarder toutes les données importantes avant de soumettre votre appareil pour réparation. 
+                        Nous ne garantissons pas que toutes les données pourront être récupérées ou préservées durant le processus de réparation.
+                    </p>
+                    <p>
+                        Nous ne serons pas tenus responsables des dommages indirects ou consécutifs, y compris la perte de profits, d'économies, de données ou d'utilisation de votre appareil ou de tout équipement associé.
+                        Nous nous réservons le droit de refuser tout service de réparation à tout moment et pour toute raison. En cas de litige, la responsabilité de notre magasin sera limitée au montant payé pour le service de réparation.
+                    </p>
                 </div>
             `;
 
@@ -410,8 +703,6 @@
             link.target = '_blank';
             link.click();
         }
-
-        document.getElementById('date-signature').value = new Date().toLocaleDateString('fr-CA');
     </script>
 </body>
 </html>
