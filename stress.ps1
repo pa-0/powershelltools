@@ -4,7 +4,7 @@ Add-Type -AssemblyName System.Drawing
 function Show-Menu {
     $form = New-Object System.Windows.Forms.Form
     $form.Text = "Advanced Stress Test Tool"
-    $form.Size = New-Object System.Drawing.Size(600, 700)
+    $form.Size = New-Object System.Drawing.Size(600, 800)
     $form.StartPosition = "CenterScreen"
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
@@ -15,97 +15,147 @@ function Show-Menu {
     $label.Size = New-Object System.Drawing.Size(200, 20)
     $form.Controls.Add($label)
 
-    $checkboxes = @()
-    $tests = @("CPU", "Memory", "Disk Write", "Disk Read", "Network", "GPU", "CPU Math", "Memory Bandwidth", "GPU Threads", "File System", "Video Playback")
+    $categories = @{
+        "CPU" = @("CPU", "CPU Math");
+        "Memory" = @("Memory", "Memory Bandwidth");
+        "Disk" = @("Disk Write", "Disk Read", "File System");
+        "Network" = @("Network");
+        "GPU" = @("GPU", "GPU Threads");
+        "Video Playback" = @("Video Playback 1", "Video Playback 2", "Video Playback 3")
+    }
+
+    $checkboxes = @{}
     $yPosition = 40
-    foreach ($test in $tests) {
-        $checkbox = New-Object System.Windows.Forms.CheckBox
-        $checkbox.Text = $test
-        $checkbox.Location = New-Object System.Drawing.Point(10, $yPosition)
-        $checkbox.Size = New-Object System.Drawing.Size(200, 20)
-        $form.Controls.Add($checkbox)
-        $checkboxes += $checkbox
-        $yPosition += 25
+    foreach ($category in $categories.Keys) {
+        $categoryLabel = New-Object System.Windows.Forms.Label
+        $categoryLabel.Text = $category
+        $categoryLabel.Font = New-Object System.Drawing.Font($categoryLabel.Font, [System.Drawing.FontStyle]::Bold)
+        $categoryLabel.Location = New-Object System.Drawing.Point(10, $yPosition)
+        $categoryLabel.Size = New-Object System.Drawing.Size(200, 20)
+        $form.Controls.Add($categoryLabel)
+        $yPosition += 20
+
+        $checkboxes[$category] = @()
+        foreach ($test in $categories[$category]) {
+            $checkbox = New-Object System.Windows.Forms.CheckBox
+            $checkbox.Text = $test
+            $checkbox.Location = New-Object System.Drawing.Point(20, $yPosition)
+            $checkbox.Size = New-Object System.Drawing.Size(200, 20)
+            $form.Controls.Add($checkbox)
+            $checkboxes[$category] += $checkbox
+            $yPosition += 25
+        }
+        $yPosition += 10
     }
 
     $selectAllButton = New-Object System.Windows.Forms.Button
     $selectAllButton.Text = "Select All"
-    $selectAllButton.Location = New-Object System.Drawing.Point(220, 40)
+    $selectAllButton.Location = New-Object System.Drawing.Point(10, $yPosition)
     $selectAllButton.Size = New-Object System.Drawing.Size(100, 30)
     $form.Controls.Add($selectAllButton)
 
     $deselectAllButton = New-Object System.Windows.Forms.Button
     $deselectAllButton.Text = "Deselect All"
-    $deselectAllButton.Location = New-Object System.Drawing.Point(330, 40)
+    $deselectAllButton.Location = New-Object System.Drawing.Point(120, $yPosition)
     $deselectAllButton.Size = New-Object System.Drawing.Size(100, 30)
     $form.Controls.Add($deselectAllButton)
 
+    $yPosition += 50
+
     $durationLabel = New-Object System.Windows.Forms.Label
-    $durationLabel.Text = "Duration (seconds):"
-    $durationLabel.Location = New-Object System.Drawing.Point(10, 300)
+    $durationLabel.Text = "Duration (seconds, 0 for infinite):"
+    $durationLabel.Location = New-Object System.Drawing.Point(10, $yPosition)
     $durationLabel.Size = New-Object System.Drawing.Size(200, 20)
     $form.Controls.Add($durationLabel)
 
     $durationBox = New-Object System.Windows.Forms.TextBox
-    $durationBox.Location = New-Object System.Drawing.Point(10, 330)
-    $durationBox.Size = New-Object System.Drawing.Size(200, 20)
+    $durationBox.Location = New-Object System.Drawing.Point(220, $yPosition)
+    $durationBox.Size = New-Object System.Drawing.Size(100, 20)
     $durationBox.Text = "60"
     $form.Controls.Add($durationBox)
 
+    $yPosition += 40
+
     $startButton = New-Object System.Windows.Forms.Button
     $startButton.Text = "Start Tests"
-    $startButton.Location = New-Object System.Drawing.Point(10, 360)
+    $startButton.Location = New-Object System.Drawing.Point(10, $yPosition)
     $startButton.Size = New-Object System.Drawing.Size(100, 30)
     $form.Controls.Add($startButton)
 
     $cancelButton = New-Object System.Windows.Forms.Button
     $cancelButton.Text = "Cancel"
-    $cancelButton.Location = New-Object System.Drawing.Point(120, 360)
+    $cancelButton.Location = New-Object System.Drawing.Point(120, $yPosition)
     $cancelButton.Size = New-Object System.Drawing.Size(100, 30)
     $form.Controls.Add($cancelButton)
 
+    $yPosition += 50
+
     $progressBar = New-Object System.Windows.Forms.ProgressBar
-    $progressBar.Location = New-Object System.Drawing.Point(10, 400)
+    $progressBar.Location = New-Object System.Drawing.Point(10, $yPosition)
     $progressBar.Size = New-Object System.Drawing.Size(560, 20)
     $form.Controls.Add($progressBar)
 
+    $yPosition += 30
+
     $resultLabel = New-Object System.Windows.Forms.Label
     $resultLabel.Text = "Results:"
-    $resultLabel.Location = New-Object System.Drawing.Point(10, 430)
+    $resultLabel.Location = New-Object System.Drawing.Point(10, $yPosition)
     $resultLabel.Size = New-Object System.Drawing.Size(560, 20)
     $form.Controls.Add($resultLabel)
 
+    $yPosition += 30
+
     $resultBox = New-Object System.Windows.Forms.TextBox
-    $resultBox.Location = New-Object System.Drawing.Point(10, 460)
+    $resultBox.Location = New-Object System.Drawing.Point(10, $yPosition)
     $resultBox.Size = New-Object System.Drawing.Size(560, 200)
     $resultBox.Multiline = $true
     $resultBox.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
     $form.Controls.Add($resultBox)
 
     $selectAllButton.Add_Click({
-        foreach ($checkbox in $checkboxes) {
-            $checkbox.Checked = $true
+        foreach ($category in $checkboxes.Keys) {
+            foreach ($checkbox in $checkboxes[$category]) {
+                $checkbox.Checked = $true
+            }
         }
     })
 
     $deselectAllButton.Add_Click({
-        foreach ($checkbox in $checkboxes) {
-            $checkbox.Checked = $false
+        foreach ($category in $checkboxes.Keys) {
+            foreach ($checkbox in $checkboxes[$category]) {
+                $checkbox.Checked = $false
+            }
         }
     })
 
     $startButton.Add_Click({
-        $selectedTests = $checkboxes | Where-Object { $_.Checked } | ForEach-Object { $_.Text }
+        $selectedTests = @()
+        foreach ($category in $checkboxes.Keys) {
+            $selectedTests += $checkboxes[$category] | Where-Object { $_.Checked } | ForEach-Object { $_.Text }
+        }
         $duration = [int]$durationBox.Text
-        if ($selectedTests -and $duration -gt 0) {
-            $resultBox.Text = "Starting tests for $duration seconds..."
+        if ($selectedTests -and $duration -ge 0) {
+            $resultBox.Clear()
+            $resultBox.AppendText("Starting tests...`n")
             $progressBar.Maximum = $selectedTests.Count
             $progressBar.Value = 0
-            foreach ($test in $selectedTests) {
-                $results = Start-Test -Type $test -Duration $duration
-                $resultBox.Text += "`n" + $results
-                $progressBar.PerformStep()
-            }
+            $cancelRequested = $false
+
+            $job = Start-Job -ScriptBlock {
+                param ($selectedTests, $duration, $resultBox, $progressBar, [ref]$cancelRequested)
+                foreach ($test in $selectedTests) {
+                    if ($cancelRequested.Value) { break }
+                    $results = Start-Test -Type $test -Duration $duration
+                    $resultBox.Invoke([action]{ $resultBox.AppendText("`n" + $args[0]) }, $results)
+                    $progressBar.Invoke([action]{ $progressBar.PerformStep() })
+                }
+            } -ArgumentList $selectedTests, $duration, $resultBox, $progressBar, [ref]$cancelRequested
+
+            $cancelButton.Add_Click({
+                $cancelRequested.Value = $true
+                Stop-Job -Job $job
+                $resultBox.AppendText("Tests cancelled.`n")
+            })
         } else {
             [System.Windows.Forms.MessageBox]::Show("Please select at least one test and enter a valid duration.")
         }
@@ -126,7 +176,7 @@ function Start-CPUTest {
     )
     $log = "CPU Stress Test Results:`n"
     $scriptBlock = {
-        $end = [DateTime]::Now.AddSeconds($Duration)
+        $end = if ($Duration -eq 0) { [DateTime]::MaxValue } else { [DateTime]::Now.AddSeconds($Duration) }
         while ([DateTime]::Now -lt $end) {
             [Math]::Sqrt(12345) > $null
         }
@@ -152,7 +202,7 @@ function Start-MemoryTest {
     try {
         $array = New-Object byte[] ($MemoryMB * 1MB)
         [void]$array.SetValue(0, 0)
-        Start-Sleep -Seconds $Duration
+        if ($Duration -gt 0) { Start-Sleep -Seconds $Duration } else { while ($true) { Start-Sleep -Seconds 1 } }
         $array = $null
         [System.GC]::Collect()
         $log += "Memory Stress Test Completed.`n"
@@ -169,7 +219,7 @@ function Start-DiskWriteTest {
     )
     $log = "Disk Write Stress Test Results:`n"
     try {
-        $end = [DateTime]::Now.AddSeconds($Duration)
+        $end = if ($Duration -eq 0) { [DateTime]::MaxValue } else { [DateTime]::Now.AddSeconds($Duration) }
         while ([DateTime]::Now -lt $end) {
             $fileContent = New-Object byte[] (10MB)
             [System.IO.File]::WriteAllBytes($FilePath, $fileContent)
@@ -191,7 +241,7 @@ function Start-DiskReadTest {
     try {
         $fileContent = New-Object byte[] (10MB)
         [System.IO.File]::WriteAllBytes($FilePath, $fileContent)
-        $end = [DateTime]::Now.AddSeconds($Duration)
+        $end = if ($Duration -eq 0) { [DateTime]::MaxValue } else { [DateTime]::Now.AddSeconds($Duration) }
         while ([DateTime]::Now -lt $end) {
             [System.IO.File]::ReadAllBytes($FilePath)
         }
@@ -210,7 +260,7 @@ function Start-NetworkTest {
     )
     $log = "Network Stress Test Results:`n"
     try {
-        $end = [DateTime]::Now.AddSeconds($Duration)
+        $end = if ($Duration -eq 0) { [DateTime]::MaxValue } else { [DateTime]::Now.AddSeconds($Duration) }
         while ([DateTime]::Now -lt $end) {
             Invoke-WebRequest -Uri $Url -OutFile "C:\Temp\network_test.tmp"
             Remove-Item -Path "C:\Temp\network_test.tmp"
@@ -229,7 +279,7 @@ function Start-GPUTest {
     $log = "GPU Stress Test Results:`n"
     try {
         $start = Get-Date
-        $end = $start.AddSeconds($Duration)
+        $end = if ($Duration -eq 0) { [DateTime]::MaxValue } else { $start.AddSeconds($Duration) }
         while ((Get-Date) -lt $end) {
             Add-Type -TypeDefinition @"
             using System;
@@ -271,7 +321,7 @@ function Start-CPUMathTest {
     )
     $log = "CPU Math Stress Test Results:`n"
     try {
-        $end = [DateTime]::Now.AddSeconds($Duration)
+        $end = if ($Duration -eq 0) { [DateTime]::MaxValue } else { [DateTime]::Now.AddSeconds($Duration) }
         while ([DateTime]::Now -lt $end) {
             for ($i = 0; $i -lt 1000000; $i++) {
                 [Math]::Pow($i, 2) > $null
@@ -291,7 +341,7 @@ function Start-MemoryBandwidthTest {
     $log = "Memory Bandwidth Stress Test Results:`n"
     try {
         $array = New-Object byte[] (1024 * 1024 * 512) # 512MB
-        $end = [DateTime]::Now.AddSeconds($Duration)
+        $end = if ($Duration -eq 0) { [DateTime]::MaxValue } else { [DateTime]::Now.AddSeconds($Duration) }
         while ([DateTime]::Now -lt $end) {
             for ($i = 0; $i -lt $array.Length; $i++) {
                 $array[$i] = 1
@@ -310,7 +360,7 @@ function Start-GPUThreadTest {
     )
     $log = "GPU Thread Stress Test Results:`n"
     try {
-        $end = [DateTime]::Now.AddSeconds($Duration)
+        $end = if ($Duration -eq 0) { [DateTime]::MaxValue } else { [DateTime]::Now.AddSeconds($Duration) }
         while ([DateTime]::Now -lt $end) {
             Add-Type -TypeDefinition @"
             using System;
@@ -347,7 +397,7 @@ function Start-FileSystemTest {
     )
     $log = "File System Stress Test Results:`n"
     try {
-        $end = [DateTime]::Now.AddSeconds($Duration)
+        $end = if ($Duration -eq 0) { [DateTime]::MaxValue } else { [DateTime]::Now.AddSeconds($Duration) }
         $testDir = "C:\Temp\FileSystemTest"
         if (-not (Test-Path -Path $testDir)) {
             New-Item -ItemType Directory -Path $testDir
@@ -367,16 +417,48 @@ function Start-FileSystemTest {
     return $log
 }
 
-function Start-VideoPlaybackTest {
+function Start-VideoPlaybackTest1 {
     param (
         [int]$Duration = 60,
         [string]$Url = "https://www.w3schools.com/html/mov_bbb.mp4"
     )
-    $log = "Video Playback Test Results:`n"
+    $log = "Video Playback Test 1 Results:`n"
     try {
         Start-Process $Url
-        Start-Sleep -Seconds $Duration
-        $log += "Video Playback Test Completed.`n"
+        if ($Duration -gt 0) { Start-Sleep -Seconds $Duration } else { while ($true) { Start-Sleep -Seconds 1 } }
+        $log += "Video Playback Test 1 Completed.`n"
+    } catch {
+        $log += "Error: $_`n"
+    }
+    return $log
+}
+
+function Start-VideoPlaybackTest2 {
+    param (
+        [int]$Duration = 60,
+        [string]$Url = "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4"
+    )
+    $log = "Video Playback Test 2 Results:`n"
+    try {
+        Start-Process $Url
+        if ($Duration -gt 0) { Start-Sleep -Seconds $Duration } else { while ($true) { Start-Sleep -Seconds 1 } }
+        $log += "Video Playback Test 2 Completed.`n"
+    } catch {
+        $log += "Error: $_`n"
+    }
+    return $log
+}
+
+function Start-VideoPlaybackTest3 {
+    param (
+        [int]$Duration = 60,
+        [string]$Url = "https://sample-videos.com/video123/mp4/480/asdasdas.mp4"
+    )
+    $log = "Video Playback Test 3 Results:`n"
+    try {
+        Start-Process $Url
+        if ($Duration -gt 0) { Start-Sleep -Seconds $Duration } else { while ($true) { Start-Sleep -Seconds 1 } }
+        $log += "Video Playback Test 3 Completed.`n"
     } catch {
         $log += "Error: $_`n"
     }
@@ -400,7 +482,9 @@ function Start-Test {
         "Memory Bandwidth" { $results = Start-MemoryBandwidthTest -Duration $Duration }
         "GPU Threads" { $results = Start-GPUThreadTest -Duration $Duration }
         "File System" { $results = Start-FileSystemTest -Duration $Duration }
-        "Video Playback" { $results = Start-VideoPlaybackTest -Duration $Duration }
+        "Video Playback 1" { $results = Start-VideoPlaybackTest1 -Duration $Duration }
+        "Video Playback 2" { $results = Start-VideoPlaybackTest2 -Duration $Duration }
+        "Video Playback 3" { $results = Start-VideoPlaybackTest3 -Duration $Duration }
         default { $results = "Invalid test type selected." }
     }
     return $results
