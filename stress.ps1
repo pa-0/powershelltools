@@ -4,16 +4,25 @@ Add-Type -AssemblyName System.Drawing
 function Show-Menu {
     $form = New-Object System.Windows.Forms.Form
     $form.Text = "Advanced Stress Test Tool"
-    $form.Size = New-Object System.Drawing.Size(600, 800)
+    $form.Size = New-Object System.Drawing.Size(800, 600)
     $form.StartPosition = "CenterScreen"
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
 
+    # Créer un TableLayoutPanel pour une meilleure disposition
+    $tableLayoutPanel = New-Object System.Windows.Forms.TableLayoutPanel
+    $tableLayoutPanel.Dock = [System.Windows.Forms.DockStyle]::Fill
+    $tableLayoutPanel.ColumnCount = 2
+    $tableLayoutPanel.RowCount = 6
+    $tableLayoutPanel.AutoSize = $true
+    $form.Controls.Add($tableLayoutPanel)
+
+    # Ajouter les éléments du menu
     $label = New-Object System.Windows.Forms.Label
     $label.Text = "Select the types of stress tests:"
-    $label.Location = New-Object System.Drawing.Point(10, 10)
-    $label.Size = New-Object System.Drawing.Size(200, 20)
-    $form.Controls.Add($label)
+    $label.AutoSize = $true
+    $tableLayoutPanel.Controls.Add($label, 0, 0)
+    $tableLayoutPanel.SetColumnSpan($label, 2)
 
     $categories = @{
         "CPU" = @("CPU", "CPU Math");
@@ -25,93 +34,84 @@ function Show-Menu {
     }
 
     $checkboxes = @{}
-    $yPosition = 40
+    $rowIndex = 1
     foreach ($category in $categories.Keys) {
         $categoryLabel = New-Object System.Windows.Forms.Label
         $categoryLabel.Text = $category
         $categoryLabel.Font = New-Object System.Drawing.Font($categoryLabel.Font, [System.Drawing.FontStyle]::Bold)
-        $categoryLabel.Location = New-Object System.Drawing.Point(10, $yPosition)
-        $categoryLabel.Size = New-Object System.Drawing.Size(200, 20)
-        $form.Controls.Add($categoryLabel)
-        $yPosition += 20
-
+        $categoryLabel.AutoSize = $true
+        $tableLayoutPanel.Controls.Add($categoryLabel, 0, $rowIndex)
+        
         $checkboxes[$category] = @()
+        $colIndex = 0
         foreach ($test in $categories[$category]) {
             $checkbox = New-Object System.Windows.Forms.CheckBox
             $checkbox.Text = $test
-            $checkbox.Location = New-Object System.Drawing.Point(20, $yPosition)
-            $checkbox.Size = New-Object System.Drawing.Size(200, 20)
-            $form.Controls.Add($checkbox)
+            $checkbox.AutoSize = $true
+            $tableLayoutPanel.Controls.Add($checkbox, $colIndex, $rowIndex + 1)
             $checkboxes[$category] += $checkbox
-            $yPosition += 25
+            $colIndex++
         }
-        $yPosition += 10
+        $rowIndex += 2
     }
 
+    # Ajouter les boutons "Select All" et "Deselect All"
     $selectAllButton = New-Object System.Windows.Forms.Button
     $selectAllButton.Text = "Select All"
-    $selectAllButton.Location = New-Object System.Drawing.Point(10, $yPosition)
-    $selectAllButton.Size = New-Object System.Drawing.Size(100, 30)
-    $form.Controls.Add($selectAllButton)
-
+    $selectAllButton.AutoSize = $true
+    $tableLayoutPanel.Controls.Add($selectAllButton, 0, $rowIndex)
+    
     $deselectAllButton = New-Object System.Windows.Forms.Button
     $deselectAllButton.Text = "Deselect All"
-    $deselectAllButton.Location = New-Object System.Drawing.Point(120, $yPosition)
-    $deselectAllButton.Size = New-Object System.Drawing.Size(100, 30)
-    $form.Controls.Add($deselectAllButton)
+    $deselectAllButton.AutoSize = $true
+    $tableLayoutPanel.Controls.Add($deselectAllButton, 1, $rowIndex)
+    
+    $rowIndex++
 
-    $yPosition += 50
-
+    # Ajouter les éléments pour la durée et les boutons de démarrage
     $durationLabel = New-Object System.Windows.Forms.Label
     $durationLabel.Text = "Duration (seconds, 0 for infinite):"
-    $durationLabel.Location = New-Object System.Drawing.Point(10, $yPosition)
-    $durationLabel.Size = New-Object System.Drawing.Size(200, 20)
-    $form.Controls.Add($durationLabel)
+    $durationLabel.AutoSize = $true
+    $tableLayoutPanel.Controls.Add($durationLabel, 0, $rowIndex)
 
     $durationBox = New-Object System.Windows.Forms.TextBox
-    $durationBox.Location = New-Object System.Drawing.Point(220, $yPosition)
     $durationBox.Size = New-Object System.Drawing.Size(100, 20)
     $durationBox.Text = "60"
-    $form.Controls.Add($durationBox)
-
-    $yPosition += 40
-
+    $tableLayoutPanel.Controls.Add($durationBox, 1, $rowIndex)
+    
+    $rowIndex++
+    
     $startButton = New-Object System.Windows.Forms.Button
     $startButton.Text = "Start Tests"
-    $startButton.Location = New-Object System.Drawing.Point(10, $yPosition)
-    $startButton.Size = New-Object System.Drawing.Size(100, 30)
-    $form.Controls.Add($startButton)
+    $startButton.AutoSize = $true
+    $tableLayoutPanel.Controls.Add($startButton, 0, $rowIndex)
 
     $cancelButton = New-Object System.Windows.Forms.Button
     $cancelButton.Text = "Cancel"
-    $cancelButton.Location = New-Object System.Drawing.Point(120, $yPosition)
-    $cancelButton.Size = New-Object System.Drawing.Size(100, 30)
-    $form.Controls.Add($cancelButton)
-
-    $yPosition += 50
-
+    $cancelButton.AutoSize = $true
+    $tableLayoutPanel.Controls.Add($cancelButton, 1, $rowIndex)
+    
+    # Ajouter une barre de progression et une zone de résultats
     $progressBar = New-Object System.Windows.Forms.ProgressBar
-    $progressBar.Location = New-Object System.Drawing.Point(10, $yPosition)
-    $progressBar.Size = New-Object System.Drawing.Size(560, 20)
-    $form.Controls.Add($progressBar)
-
-    $yPosition += 30
+    $progressBar.Dock = [System.Windows.Forms.DockStyle]::Top
+    $progressBar.Height = 20
+    $tableLayoutPanel.Controls.Add($progressBar, 0, $rowIndex + 1)
+    $tableLayoutPanel.SetColumnSpan($progressBar, 2)
 
     $resultLabel = New-Object System.Windows.Forms.Label
     $resultLabel.Text = "Results:"
-    $resultLabel.Location = New-Object System.Drawing.Point(10, $yPosition)
-    $resultLabel.Size = New-Object System.Drawing.Size(560, 20)
-    $form.Controls.Add($resultLabel)
-
-    $yPosition += 30
+    $resultLabel.AutoSize = $true
+    $tableLayoutPanel.Controls.Add($resultLabel, 0, $rowIndex + 2)
+    $tableLayoutPanel.SetColumnSpan($resultLabel, 2)
 
     $resultBox = New-Object System.Windows.Forms.TextBox
-    $resultBox.Location = New-Object System.Drawing.Point(10, $yPosition)
-    $resultBox.Size = New-Object System.Drawing.Size(560, 200)
     $resultBox.Multiline = $true
     $resultBox.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
-    $form.Controls.Add($resultBox)
+    $resultBox.Dock = [System.Windows.Forms.DockStyle]::Fill
+    $tableLayoutPanel.Controls.Add($resultBox, 0, $rowIndex + 3)
+    $tableLayoutPanel.SetColumnSpan($resultBox, 2)
 
+    # Gestion des clics sur les boutons
     $selectAllButton.Add_Click({
         foreach ($category in $checkboxes.Keys) {
             foreach ($checkbox in $checkboxes[$category]) {
@@ -141,55 +141,68 @@ function Show-Menu {
             $progressBar.Value = 0
             $cancelRequested = $false
 
-            $job = Start-Job -ScriptBlock {
-                param ($selectedTests, $duration, $resultBox, $progressBar, [ref]$cancelRequested)
-                foreach ($test in $selectedTests) {
-                    if ($cancelRequested.Value) { break }
-                    $results = Start-Test -Type $test -Duration $duration
-                    $resultBox.Invoke([action]{ $resultBox.AppendText("`n" + $args[0]) }, $results)
-                    $progressBar.Invoke([action]{ $progressBar.PerformStep() })
-                }
-            } -ArgumentList $selectedTests, $duration, $resultBox, $progressBar, [ref]$cancelRequested
-
-            $cancelButton.Add_Click({
-                $cancelRequested.Value = $true
-                Stop-Job -Job $job
-                $resultBox.AppendText("Tests cancelled.`n")
-            })
+            foreach ($test in $selectedTests) {
+                if ($cancelRequested) { break }
+                $results = Start-Test -Type $test -Duration $duration
+                $resultBox.AppendText("`n" + $results)
+                $progressBar.PerformStep()
+            }
         } else {
             [System.Windows.Forms.MessageBox]::Show("Please select at least one test and enter a valid duration.")
         }
     })
 
     $cancelButton.Add_Click({
-        $form.Close()
+        $cancelRequested = $true
+        $resultBox.AppendText("Tests cancelled.`n")
     })
 
-    $form.Topmost = $true
-    $form.Add_Shown({$form.Activate()})
-    [void]$form.ShowDialog()
+    $form.ShowDialog()
 }
 
 function Start-CPUTest {
     param (
-        [int]$Duration = 60
+        [int]$Duration = 60,
+        [int]$Threads = [Environment]::ProcessorCount,
+        [switch]$LogPerformance
     )
+
     $log = "CPU Stress Test Results:`n"
-    $scriptBlock = {
-        $end = if ($Duration -eq 0) { [DateTime]::MaxValue } else { [DateTime]::Now.AddSeconds($Duration) }
-        while ([DateTime]::Now -lt $end) {
-            [Math]::Sqrt(12345) > $null
-        }
+    $startTime = [DateTime]::Now
+    $endTime = if ($Duration -eq 0) { [DateTime]::MaxValue } else { $startTime.AddSeconds($Duration) }
+
+    $cpuThreads = [System.Collections.ArrayList]::new()
+
+    for ($i = 0; $i -lt $Threads; $i++) {
+        $cpuThreads.Add([powershell]::Create().AddScript({
+            param ($endTime)
+            while ([DateTime]::Now -lt $endTime) {
+                [Math]::Sqrt(12345) > $null
+            }
+        }).AddArgument($endTime).BeginInvoke())
     }
-    $jobs = @()
-    for ($i = 0; $i -lt [Environment]::ProcessorCount; $i++) {
-        $jobs += Start-Job -ScriptBlock $scriptBlock
+
+    if ($LogPerformance) {
+        $cpuCounter = New-Object System.Diagnostics.PerformanceCounter("Processor", "% Processor Time", "_Total")
+        $startCpuUsage = $cpuCounter.NextValue()
+        Start-Sleep -Seconds 1
+        $log += "Performance Log:`n"
     }
+
     Start-Sleep -Seconds $Duration
-    $errors = $jobs | ForEach-Object { Receive-Job -Job $_ -ErrorAction SilentlyContinue }
-    $jobs | Remove-Job
-    $log += "Errors: $errors`n"
+
+    $cpuThreads | ForEach-Object {
+        $_.EndInvoke($_)
+    }
+
+    if ($LogPerformance) {
+        $endCpuUsage = $cpuCounter.NextValue()
+        $log += "Initial CPU Usage: $startCpuUsage%`n"
+        $log += "Final CPU Usage: $endCpuUsage%`n"
+    }
+
     $log += "CPU Stress Test Completed.`n"
+
     return $log
 }
 
@@ -472,7 +485,7 @@ function Start-Test {
     )
     $results = ""
     switch ($Type) {
-        "CPU" { $results = Start-CPUTest -Duration $Duration }
+        "CPU" { $results = Start-CPUTest -Duration $Duration -Threads 8 -LogPerformance }
         "Memory" { $results = Start-MemoryTest -Duration $Duration -MemoryMB 2048 }
         "Disk Write" { $results = Start-DiskWriteTest -Duration $Duration }
         "Disk Read" { $results = Start-DiskReadTest -Duration $Duration }
