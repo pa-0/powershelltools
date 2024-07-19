@@ -1,10 +1,34 @@
+param (
+    [String]$Community = "public",
+    [Switch]$Force,
+    [Parameter(Mandatory=$true, Position=0, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+    [Alias("Address","ComputerName","IP","Node")]
+    [String[]]$IpAddress,
+    [Parameter(Mandatory=$false, Position=1)]
+    [String]$OID="1.3.6.1",
+    [int]$Port=161,
+    [int]$Retry =  1,
+    [int]$TimeOut = 2000,
+    [ValidateSet("1","2c","3")]
+    [String]$Version="2c",
+    [String]$UserName,
+    [ValidateSet("MD5","SHA")]
+    [String]$AuthProtocol,
+    [String]$AuthPassword,
+    [ValidateSet("DES","AES")]
+    [String]$PrivProtocol,
+    [String]$PrivPassword,
+    [String]$OutputFile,
+    [String]$FilterType
+)
+
 Function Invoke-AdvancedSnmpWalk { 
     <#
         .SYNOPSIS
-            Invoke-AdvancedSnmpWalk returns all objects within the subtree from SNMP.
+            Invoke-AdvancedSnmpWalk returns all objects within the subtree from SNMP, with enhanced capabilities.
 
         .DESCRIPTION
-            Invoke-AdvancedSnmpWalk returns all objects within the subtree from SNMP, supporting SNMPv1, v2c, and v3, and includes additional functionalities such as output to CSV and OID type filtering.
+            Invoke-AdvancedSnmpWalk returns all objects within the subtree from SNMP, supporting SNMPv1, v2c, and v3. It includes additional functionalities such as detailed information extraction, output to CSV, OID type filtering, and statistics.
 
         .PARAMETER IpAddress
             This parameter contains the node address of the agent.
@@ -16,7 +40,7 @@ Function Invoke-AdvancedSnmpWalk {
             This lets the Walk operation break out of the subtree and returns all OIDs until node returns NULL.
 
         .PARAMETER Version
-            This parameter specifies the SNMP version (1, 2, 3).
+            This parameter specifies the SNMP version (1, 2c, 3).
 
         .PARAMETER UserName
             This parameter specifies the SNMPv3 username.
@@ -100,33 +124,51 @@ Function Invoke-AdvancedSnmpWalk {
         }
 
         $Results = @()
+        $Statistics = @{
+            TotalNodes = 0
+            TotalOidsQueried = 0
+            TotalErrors = 0
+            StartTime = Get-Date
+        }
     }
     Process {
         ForEach($Node in $IpAddress) {
+            $Statistics.TotalNodes++
             $LastOID = $OID
             $SimpleSnmp.PeerIP = $Node
             $SimpleSnmp.PeerName = $Node
             While ($null -ne $LastOID) {
-                $Response = $SimpleSnmp.GetNext($Ver, $LastOID)
-                if ($Response) {
-                    if ($Response.Count -gt 0) {
-                        ForEach ($var in $Response.GetEnumerator()) {
-                            $Type = [SnmpSharpNet.SnmpConstants]::GetTypeName($var.Value.Type)
-                            if (-not $FilterType -or $Type -eq $FilterType) {
-                                $Object = [PSCustomObject] @{
-                                    Node = $Node
-                                    OID = $var.Key.ToString()
-                                    Type = $Type
-                                    Value = $var.Value.ToString()
+                try {
+                    $Response = $SimpleSnmp.GetNext($Ver, $LastOID)
+                    if ($Response) {
+                        if ($Response.Count -gt 0) {
+                            ForEach ($var in $Response.GetEnumerator()) {
+                                $Type = [SnmpSharpNet.SnmpConstants]::GetTypeName($var.Value.Type)
+                                if (-not $FilterType -or $Type -eq $FilterType) {
+                                    $Object = [PSCustomObject] @{
+                                        Node = $Node
+                                        OID = $var.Key.ToString()
+                                        Type = $Type
+                                        Value = $var.Value.ToString()
+                                    }
+                                    $Results += $Object
+                                    $Statistics.TotalOidsQueried++
+                                    if (-not $Force -and -not $RootOID.IsRootOf($var.Key)) { $LastOID = $null; break }
+                                    $LastOID = $var.Key.ToString()
+                                    Write-Output -InputObject $Object
                                 }
-                                $Results += $Object
-                                if (-not $Force -and -not $RootOID.IsRootOf($var.Key)) { $LastOID = $null; break }
-                                $LastOID = $var.Key.ToString()
-                                Write-Output -InputObject $Object
                             }
-                        }
-                    } else { $LastOID = $null }
-                } else { Write-Warning -Message "OID returned Null $LastOID"; $LastOID = $null }
+                        } else { $LastOID = $null }
+                    } else { 
+                        Write-Warning -Message "OID returned Null $LastOID"
+                        $Statistics.TotalErrors++
+                        $LastOID = $null 
+                    }
+                } catch {
+                    Write-Error -Message "Error querying OID $LastOID on node $Node: $_"
+                    $Statistics.TotalErrors++
+                    $LastOID = $null
+                }
             }
         }
     }
@@ -134,8 +176,10 @@ Function Invoke-AdvancedSnmpWalk {
         if ($OutputFile) {
             $Results | Export-Csv -Path $OutputFile -NoTypeInformation
         }
+        $Statistics.EndTime = Get-Date
+        $Statistics.Duration = $Statistics.EndTime - $Statistics.StartTime
+        Write-Output -InputObject "SNMP Walk Statistics:"
+        Write-Output -InputObject $Statistics
     }
 }
 
-# Example usage:
-# Invoke-AdvancedSnmpWalk -IpAddress 192.168.1.100 -OID 1.3.6.1.2.1.1 -Version 2c -Community public -OutputFile "results.csv" -FilterType "OctetString"
