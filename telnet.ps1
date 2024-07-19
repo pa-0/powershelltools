@@ -1,76 +1,88 @@
-param (
-    [string]$mode,
-    [string]$address,
-    [int]$port,
-    [string]$protocol = "tcp"
+param(
+    [string]$Mode,
+    [string]$Address = "",
+    [int]$Port,
+    [switch]$UDP = $false
 )
 
 function Show-Help {
     Write-Output @"
-Usage: .\Netcat.ps1 -mode <listen|connect> -address <IP> -port <port> [-protocol <tcp|udp>]
+Usage: .\Netcat.ps1 -Mode <listen|connect> -Address <IP> -Port <port> [-UDP]
 
--m    --mode       Mode of operation: 'listen' or 'connect'
--a    --address    IP address to connect to (required in 'connect' mode)
--p    --port       Port number to listen on or connect to
--pr   --protocol   Protocol to use: 'tcp' (default) or 'udp'
--h    --help       Show this help message
+-MODE <listen|connect> : Specify 'listen' to start listening on the port or 'connect' to connect to an address.
+-ADDRESS <IP> : IP address to connect to or to listen for incoming connections (for 'connect' mode).
+-PORT <port> : Port number to listen on or connect to.
+-UDP : Use UDP instead of TCP. Optional.
 "@
 }
 
 function Start-TCPListener {
     param (
-        [int]$port
+        [int]$Port
     )
 
-    $listener = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Any, $port)
+    $listener = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Any, $Port)
     $listener.Start()
-    Write-Output "Listening on TCP port $port..."
+    Write-Output "Listening on TCP port $Port..."
 
-    while ($true) {
-        $client = $listener.AcceptTcpClient()
-        Write-Output "Connection accepted from $($client.Client.RemoteEndPoint.Address):$($client.Client.RemoteEndPoint.Port)"
-        $stream = $client.GetStream()
-        $reader = New-Object System.IO.StreamReader($stream)
-        $writer = New-Object System.IO.StreamWriter($stream)
-        $writer.AutoFlush = $true
-
-        while ($client.Connected) {
-            if ($stream.DataAvailable) {
-                $data = $reader.ReadLine()
-                Write-Output "Received: $data"
-            }
-
-            $input = Read-Host
-            $writer.WriteLine($input)
-        }
-
-        $client.Close()
-    }
-
-    $listener.Stop()
-}
-
-function Start-TCPClient {
-    param (
-        [string]$address,
-        [int]$port
-    )
-
-    $client = New-Object System.Net.Sockets.TcpClient($address, $port)
-    Write-Output "Connected to $address on TCP port $port"
+    $client = $listener.AcceptTcpClient()
+    Write-Output "Connection accepted from $($client.Client.RemoteEndPoint.Address):$($client.Client.RemoteEndPoint.Port)"
     $stream = $client.GetStream()
     $reader = New-Object System.IO.StreamReader($stream)
     $writer = New-Object System.IO.StreamWriter($stream)
     $writer.AutoFlush = $true
 
-    while ($client.Connected) {
-        $input = Read-Host
-        $writer.WriteLine($input)
-
-        if ($stream.DataAvailable) {
-            $data = $reader.ReadLine()
-            Write-Output "Received: $data"
+    # Thread for reading data
+    $readThread = [System.Threading.Thread]::new({
+        param ($reader)
+        while ($true) {
+            if ($reader.Peek() -ge 0) {
+                $data = $reader.ReadLine()
+                Write-Output "Received: $data"
+            }
         }
+    }, $reader)
+
+    $readThread.Start()
+
+    while ($client.Connected) {
+        $input = Read-Host -Prompt "Send"
+        $writer.WriteLine($input)
+    }
+
+    $client.Close()
+    $listener.Stop()
+}
+
+function Start-TCPClient {
+    param (
+        [string]$Address,
+        [int]$Port
+    )
+
+    $client = New-Object System.Net.Sockets.TcpClient($Address, $Port)
+    Write-Output "Connected to $Address on TCP port $Port"
+    $stream = $client.GetStream()
+    $reader = New-Object System.IO.StreamReader($stream)
+    $writer = New-Object System.IO.StreamWriter($stream)
+    $writer.AutoFlush = $true
+
+    # Thread for reading data
+    $readThread = [System.Threading.Thread]::new({
+        param ($reader)
+        while ($true) {
+            if ($reader.Peek() -ge 0) {
+                $data = $reader.ReadLine()
+                Write-Output "Received: $data"
+            }
+        }
+    }, $reader)
+
+    $readThread.Start()
+
+    while ($client.Connected) {
+        $input = Read-Host -Prompt "Send"
+        $writer.WriteLine($input)
     }
 
     $client.Close()
@@ -78,21 +90,27 @@ function Start-TCPClient {
 
 function Start-UDPListener {
     param (
-        [int]$port
+        [int]$Port
     )
 
-    $endpoint = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, $port)
-    $udpClient = New-Object System.Net.Sockets.UdpClient($port)
-    Write-Output "Listening on UDP port $port..."
+    $endpoint = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, $Port)
+    $udpClient = New-Object System.Net.Sockets.UdpClient($Port)
+    Write-Output "Listening on UDP port $Port..."
+
+    # Thread for reading data
+    $readThread = [System.Threading.Thread]::new({
+        param ($udpClient, $endpoint)
+        while ($true) {
+            $receivedResult = $udpClient.Receive([ref]$endpoint)
+            $data = [System.Text.Encoding]::UTF8.GetString($receivedResult)
+            Write-Output "Received: $data from $($endpoint.Address):$($endpoint.Port)"
+        }
+    }, $udpClient, $endpoint)
+
+    $readThread.Start()
 
     while ($true) {
-        $receivedResult = $udpClient.Receive([ref]$endpoint)
-        $data = [System.Text.Encoding]::UTF8.GetString($receivedResult)
-        Write-Output "Received: $data from $($endpoint.Address):$($endpoint.Port)"
-        
-        $input = Read-Host
-        $sendBytes = [System.Text.Encoding]::UTF8.GetBytes($input)
-        $udpClient.Send($sendBytes, $sendBytes.Length, $endpoint)
+        Start-Sleep -Seconds 1
     }
 
     $udpClient.Close()
@@ -100,42 +118,46 @@ function Start-UDPListener {
 
 function Start-UDPClient {
     param (
-        [string]$address,
-        [int]$port
+        [string]$Address,
+        [int]$Port
     )
 
-    $endpoint = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Parse($address), $port)
+    $endpoint = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Parse($Address), $Port)
     $udpClient = New-Object System.Net.Sockets.UdpClient
-    Write-Output "Connected to $address on UDP port $port"
+    Write-Output "Connected to $Address on UDP port $Port"
+
+    # Thread for reading data
+    $readThread = [System.Threading.Thread]::new({
+        param ($udpClient, $endpoint)
+        while ($true) {
+            $receivedResult = $udpClient.Receive([ref]$endpoint)
+            $data = [System.Text.Encoding]::UTF8.GetString($receivedResult)
+            Write-Output "Received: $data from $($endpoint.Address):$($endpoint.Port)"
+        }
+    }, $udpClient, $endpoint)
+
+    $readThread.Start()
 
     while ($true) {
-        $input = Read-Host
+        $input = Read-Host -Prompt "Send"
         $sendBytes = [System.Text.Encoding]::UTF8.GetBytes($input)
         $udpClient.Send($sendBytes, $sendBytes.Length, $endpoint)
-        
-        $receivedResult = $udpClient.Receive([ref]$endpoint)
-        $data = [System.Text.Encoding]::UTF8.GetString($receivedResult)
-        Write-Output "Received: $data from $($endpoint.Address):$($endpoint.Port)"
     }
 
     $udpClient.Close()
 }
 
-if ($mode -eq "listen") {
-    if ($protocol -eq "tcp") {
-        Start-TCPListener -port $port
-    } elseif ($protocol -eq "udp") {
-        Start-UDPListener -port $port
+if ($Mode -eq "listen") {
+    if ($UDP) {
+        Start-UDPListener -Port $Port
     } else {
-        Show-Help
+        Start-TCPListener -Port $Port
     }
-} elseif ($mode -eq "connect") {
-    if ($protocol -eq "tcp") {
-        Start-TCPClient -address $address -port $port
-    } elseif ($protocol -eq "udp") {
-        Start-UDPClient -address $address -port $port
+} elseif ($Mode -eq "connect") {
+    if ($UDP) {
+        Start-UDPClient -Address $Address -Port $Port
     } else {
-        Show-Help
+        Start-TCPClient -Address $Address -Port $Port
     }
 } else {
     Show-Help
