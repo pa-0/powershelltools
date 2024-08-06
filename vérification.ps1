@@ -12,7 +12,8 @@ function Get-StartupItemsFromRegistry {
             $results += [PSCustomObject]@{
                 Source = "Démarrage (registre)"
                 Path = $path
-                Data = $_ | ConvertTo-Html -Fragment
+                Name = $_.PSChildName
+                Value = $_.$($_.PSChildName)
             }
         }
     }
@@ -34,7 +35,8 @@ function Get-StartupItemsFromFolders {
             $results += [PSCustomObject]@{
                 Source = "Démarrage (dossier)"
                 Path = $folder
-                Data = $_ | ConvertTo-Html -Fragment
+                Name = $_.Name
+                FullPath = $_.FullPath
             }
         }
     }
@@ -50,7 +52,9 @@ function Get-ScheduledTasks {
         $results += [PSCustomObject]@{
             Source = "Tâches planifiées"
             Path = ""
-            Data = $_ | ConvertTo-Html -Fragment
+            TaskName = $_.TaskName
+            TaskPath = $_.TaskPath
+            LastRunTime = $_.LastRunTime
         }
     }
     
@@ -65,7 +69,9 @@ function Get-RunningProcesses {
         $results += [PSCustomObject]@{
             Source = "Processus en cours"
             Path = ""
-            Data = $_ | ConvertTo-Html -Fragment
+            Name = $_.Name
+            Id = $_.Id
+            ExecutablePath = $_.Path
         }
     }
     
@@ -113,7 +119,14 @@ function Generate-Report {
             if ($item.Path) {
                 $content += "<p><strong>Chemin:</strong> $($item.Path)</p>"
             }
-            $content += $item.Data
+            $content += "<table>"
+            $content += "<tr><th>Nom</th><th>Valeur</th></tr>"
+            foreach ($property in $item.PSObject.Properties) {
+                if ($property.Name -ne "Source" -and $property.Name -ne "Path") {
+                    $content += "<tr><td>$($property.Name)</td><td>$($property.Value)</td></tr>"
+                }
+            }
+            $content += "</table>"
         }
     }
     
